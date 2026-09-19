@@ -29,14 +29,14 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);user
 .tb-left{display:flex;align-items:center;gap:16px;}
 .clock{font-size:22px;font-weight:700;}
 .tb-date{font-size:12px;color:var(--mut);}
-.tb-right{display:flex;align-items:center;gap:18px;font-size:13px;color:var(--mut);}
-.stat{display:flex;align-items:center;gap:6px;}
+.tb-right{display:flex;align-items:center;gap:18px;font-size:13px;color:var(--mut);overflow-x:auto;flex-shrink:1;max-width:70%;-webkit-overflow-scrolling:touch;}
+.stat{display:flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0;}
 .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);}
 .dot.off{background:#455;}
 
 /* Icerik */
 .content{flex:1;position:relative;overflow:hidden;}
-.page{position:absolute;inset:0;padding:22px;padding-bottom:52px;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain;display:none;animation:fade .3s;}
+.page{position:absolute;inset:0;padding:22px;padding-bottom:52px;overflow:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;overscroll-behavior:contain;display:none;animation:fade .3s;}
 .page.active{display:block;}
 @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 h2.title{font-size:22px;margin-bottom:16px;display:flex;align-items:center;gap:10px;}
@@ -44,8 +44,8 @@ h2.title{font-size:22px;margin-bottom:16px;display:flex;align-items:center;gap:1
 
 /* Kartlar */
 .grid{display:grid;gap:16px;}
-.g3{grid-template-columns:repeat(3,1fr);}
-.g2{grid-template-columns:repeat(2,1fr);}
+.g3{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));}
+.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr));}
 .card{background:var(--panel);border:1px solid #1e2740;border-radius:18px;padding:18px;}
 .card h3{font-size:14px;color:var(--mut);margin-bottom:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
 
@@ -58,10 +58,10 @@ h2.title{font-size:22px;margin-bottom:16px;display:flex;align-items:center;gap:1
 .eq span{width:5px;background:linear-gradient(var(--accent),var(--accent2));border-radius:3px;animation:bar 1s infinite ease-in-out;}
 @keyframes bar{0%,100%{height:8px}50%{height:34px}}
 .presets{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
-.preset{background:var(--panel2);border-radius:12px;padding:10px;text-align:center;cursor:pointer;transition:.15s;}
+.preset{background:var(--panel2);border-radius:12px;padding:14px 10px;text-align:center;cursor:pointer;transition:.15s;}
 .preset.on{background:linear-gradient(135deg,var(--accent2),var(--accent));color:#03121b;font-weight:700;}
-.preset b{display:block;font-size:15px;}
-.preset span{font-size:10px;color:var(--mut);}
+.preset b{display:block;font-size:22px;}
+.preset span{font-size:14px;color:var(--mut);}
 .preset.on span{color:#0a2530;}
 .controls{display:flex;justify-content:center;align-items:center;gap:22px;margin-top:8px;}
 .cbtn{width:52px;height:52px;border-radius:50%;background:var(--panel2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--txt);}
@@ -153,7 +153,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .popup b{font-size:18px;}
 .popup span{font-size:12px;opacity:.9;display:block;}
 
-.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+.quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:14px;}
 .qbtn{background:var(--panel);border:1px solid #1e2740;border-radius:16px;padding:20px 10px;text-align:center;cursor:pointer;transition:.15s;}
 .qbtn:active{background:var(--panel2);}
 .qbtn .ic{font-size:30px;display:block;margin-bottom:8px;}
@@ -466,7 +466,7 @@ function tryStream(s,idx){
 }
 function renderPresets(){
   document.getElementById('presets').innerHTML=stations.map((s,i)=>
-    `<div class="preset ${i===cur?'on':''}" onclick="pick(${i})"><b>${s.f}</b><span>${s.n}</span></div>`).join('');
+    `<div class="preset ${i===cur?'on':''}" onclick="pick(${i})"><b>${s.n}</b><span>${s.f} MHz</span></div>`).join('');
 }
 function pick(i){playStation(i);}
 function updateRadio(){
@@ -618,22 +618,27 @@ if(navigator.connection)navigator.connection.addEventListener('change',updateNet
 })();
 
 // ---- GPS / Konum / Hız ----
-let geoLat=41.015,geoLon=28.98,lastWx=0;
+let geoLat=41.015,geoLon=28.98,lastWx=0,lastMapLat=0,lastMapLon=0;
 function onGeo(p){
   const c=p.coords;
   geoLat=c.latitude;geoLon=c.longitude;
   document.getElementById('dot-gps').classList.remove('off');
   const kmh=Math.max(0,Math.round((c.speed||0)*3.6));
   const ns=document.getElementById('nav-speed');if(ns)ns.textContent=kmh;
-  const cd=document.getElementById('nav-coord');if(cd)cd.textContent=c.latitude.toFixed(4)+', '+c.longitude.toFixed(4)+' · ±'+Math.round(c.accuracy)+'m';
-  // Harita merkezi
+  const cd=document.getElementById('nav-coord');if(cd)cd.textContent=c.latitude.toFixed(5)+', '+c.longitude.toFixed(5)+' · ±'+Math.round(c.accuracy)+'m';
+  // Harita merkezi – yalnızca belirgin hareket olunca yenile (titremeyi önler)
   const mp=document.getElementById('navmap');
-  if(mp){const d=0.02;mp.src='https://www.openstreetmap.org/export/embed.html?bbox='+(geoLon-d)+'%2C'+(geoLat-d)+'%2C'+(geoLon+d)+'%2C'+(geoLat+d)+'&layer=mapnik&marker='+geoLat+'%2C'+geoLon;}
+  const moved=Math.abs(geoLat-lastMapLat)>0.0004||Math.abs(geoLon-lastMapLon)>0.0004;
+  if(mp&&moved){
+    lastMapLat=geoLat;lastMapLon=geoLon;
+    const d=0.006;
+    mp.src='https://www.openstreetmap.org/export/embed.html?bbox='+(geoLon-d)+'%2C'+(geoLat-d)+'%2C'+(geoLon+d)+'%2C'+(geoLat+d)+'&layer=mapnik&marker='+geoLat+'%2C'+geoLon;
+  }
   // Uyarı sadece hareket halindeyken
   driving = kmh>3;
   checkSpeedWarn(kmh);
-  // Konum adı + hava (60 sn'de bir)
-  if(Date.now()-lastWx>60000){lastWx=Date.now();fetchPlace();fetchWeather();}
+  // Konum adı + hava (30 sn'de bir)
+  if(Date.now()-lastWx>30000){lastWx=Date.now();fetchPlace();fetchWeather();}
 }
 function onGeoErr(e){
   document.getElementById('dot-gps').classList.add('off');
@@ -643,7 +648,11 @@ function onGeoErr(e){
   if(Date.now()-lastWx>60000){lastWx=Date.now();fetchWeather();}
 }
 if(navigator.geolocation){
-  navigator.geolocation.watchPosition(onGeo,onGeoErr,{enableHighAccuracy:true,maximumAge:5000,timeout:15000});
+  navigator.geolocation.watchPosition(onGeo,onGeoErr,{enableHighAccuracy:true,maximumAge:0,timeout:20000});
+  // Gerçek zamanlı: her 3 saniyede bir konumu tazele
+  setInterval(function(){
+    navigator.geolocation.getCurrentPosition(onGeo,onGeoErr,{enableHighAccuracy:true,maximumAge:0,timeout:10000});
+  },3000);
 }else{
   document.getElementById('dot-gps').classList.add('off');
 }
