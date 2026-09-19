@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>NaviMax Media Center</title>
+<title>NAVİMEX PRO V01</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.15/hls.min.js"></script>
 <style>
 :root{
@@ -36,7 +36,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);user
 
 /* Icerik */
 .content{flex:1;position:relative;overflow:hidden;}
-.page{position:absolute;inset:0;padding:22px;overflow-y:auto;display:none;animation:fade .3s;}
+.page{position:absolute;inset:0;padding:22px;padding-bottom:52px;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain;display:none;animation:fade .3s;}
 .page.active{display:block;}
 @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 h2.title{font-size:22px;margin-bottom:16px;display:flex;align-items:center;gap:10px;}
@@ -161,6 +161,17 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .wbig{display:flex;align-items:center;gap:16px;}
 .wbig .ic{font-size:52px;}
 .wbig .t{font-size:44px;font-weight:800;}
+
+/* Kayar yazi (marquee) */
+.marquee{height:34px;background:#05070c;border-top:1px solid #1e2740;overflow:hidden;position:relative;display:flex;align-items:center;}
+.marquee .track2{display:inline-block;white-space:nowrap;padding-left:100%;animation:scroll 32s linear infinite;color:var(--accent);font-size:13px;font-weight:600;}
+.marquee .track2 b{color:#fff;}
+.marquee .track2 .sep{color:var(--mut);margin:0 14px;}
+@keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+
+/* Daha cok EQ cubugu */
+.eq.big-eq{gap:3px;height:46px;}
+.eq.big-eq span{width:4px;}
 </style>
 </head>
 <body>
@@ -168,7 +179,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 
   <!-- SOL MENU -->
   <div class="sidebar">
-    <div class="logo">NAVI<span style="color:#fff">MAX</span><small>MEDIA</small></div>
+    <div class="logo">NAVİMEX<span style="color:#fff"> PRO</span><small>V01 · HALİL KILIÇ</small></div>
     <div class="navbtn active" data-page="home"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2z"/></svg>Ana</div>
     <div class="navbtn" data-page="radio"><svg viewBox="0 0 24 24"><circle cx="12" cy="14" r="4"/><path d="M15 6l4-2M5 10h14a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2z"/></svg>Radyo</div>
     <div class="navbtn" data-page="nav"><svg viewBox="0 0 24 24"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg>Navi</div>
@@ -186,6 +197,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
         <div class="tb-date" id="date"></div>
       </div>
       <div class="tb-right">
+        <div class="stat" id="net-conn"><span class="dot off" id="dot-conn"></span><span id="conntxt">İNTERNET</span></div>
         <div class="stat"><span class="dot off" id="dot-gps"></span>GPS</div>
         <div class="stat"><span class="dot off" id="dot-bt"></span>Bluetooth</div>
         <div class="stat"><span class="dot off" id="dot-wifi"></span><span id="nettxt">Ağ</span></div>
@@ -232,13 +244,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
       <!-- RADYO -->
       <div class="page" id="radio">
         <h2 class="title">FM Radyo</h2>
-        <div class="grid g2">
+        <div style="display:flex;flex-direction:column;gap:16px">
           <div class="card">
             <div class="radio-now">
               <div class="radio-freq" id="rfreq">100.0<small>MHz</small></div>
               <div class="radio-name" id="rname">Power FM</div>
             </div>
-            <div class="eq"><span style="animation-delay:0s"></span><span style="animation-delay:.15s"></span><span style="animation-delay:.3s"></span><span style="animation-delay:.45s"></span><span style="animation-delay:.2s"></span><span style="animation-delay:.35s"></span><span style="animation-delay:.1s"></span></div>
+            <div class="eq big-eq"><span style="animation-delay:0s"></span><span style="animation-delay:.15s"></span><span style="animation-delay:.3s"></span><span style="animation-delay:.45s"></span><span style="animation-delay:.2s"></span><span style="animation-delay:.35s"></span><span style="animation-delay:.1s"></span><span style="animation-delay:.5s"></span><span style="animation-delay:.25s"></span><span style="animation-delay:.05s"></span><span style="animation-delay:.4s"></span><span style="animation-delay:.18s"></span><span style="animation-delay:.33s"></span><span style="animation-delay:.48s"></span><span style="animation-delay:.12s"></span><span style="animation-delay:.28s"></span><span style="animation-delay:.08s"></span><span style="animation-delay:.38s"></span><span style="animation-delay:.22s"></span><span style="animation-delay:.44s"></span><span style="animation-delay:.16s"></span><span style="animation-delay:.36s"></span><span style="animation-delay:.06s"></span><span style="animation-delay:.26s"></span></div>
             <div class="controls">
               <div class="cbtn" onclick="tuneStep(-1)"><svg viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6zM20 18V6l-8.5 6z"/></svg></div>
               <div class="cbtn big" id="rplay" onclick="togglePlay(this)"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
@@ -319,7 +331,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
       <!-- UYARILAR -->
       <div class="page" id="alerts">
         <h2 class="title">Uyarılar & Güvenlik</h2>
-        <div class="toggle" onclick="toggleDriving(this)" style="max-width:340px;margin-bottom:16px;padding:14px"><span class="ic">🅿️</span><b>Sürüş Modu: KAPALI (Park)</b><div style="font-size:11px;color:var(--mut);margin-top:4px">Açılınca yol uyarıları verilir</div></div>
+        <div class="card" style="max-width:420px;margin-bottom:16px"><b style="color:var(--ok)">🟢 Gerçek Zamanlı İzleme Aktif</b><div style="font-size:12px;color:var(--mut);margin-top:6px">Tüm uyarılar cihazınızın gerçek GPS ve bağlantı verilerine dayanır. Sahte/demo uyarı gösterilmez. Hız limiti aşıldığında otomatik uyarır.</div></div>
         <div id="alertlist"></div>
       </div>
 
@@ -355,6 +367,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
       </div>
 
     </div><!-- content -->
+    <div class="marquee"><div class="track2" id="marquee">NAVİMEX PRO V01 · Yapımcı: HALİL KILIÇ</div></div>
   </div><!-- main -->
 </div><!-- app -->
 
@@ -515,17 +528,18 @@ music.ontimeupdate=()=>{
 };
 renderTracks();
 
-const alerts=[
-  {c:'warn2',i:'📷',t:'Sabit Hız Kamerası',s:'400 m ileride · Limit 82 km/s',tm:'Şimdi'},
-  {c:'',i:'🚨',t:'Yaklaşma Uyarısı',s:'Öndeki araçla mesafe azaldı',tm:'2 dk'},
-  {c:'warn2',i:'🛣️',t:'Yol Çalışması',s:'2 km ileride şerit daralması',tm:'5 dk'},
-  {c:'ok',i:'✅',t:'Emniyet Kemeri',s:'Sürücü kemeri bağlı',tm:'8 dk'},
-  {c:'',i:'🌧️',t:'Yağış Uyarısı',s:'Rota üzerinde yağmur, dikkatli sürün',tm:'12 dk'},
-  {c:'ok',i:'🛢️',t:'Lastik Basıncı',s:'Tüm lastikler normal (2.3 bar)',tm:'20 dk'}
-];
+// Gerçek olay günlüğü – sahte uyarı yok. Sadece cihazdan gelen gerçek olaylar eklenir.
+const alerts=[];
 function renderAlerts(){
-  document.getElementById('alertlist').innerHTML=alerts.map(a=>
+  const el=document.getElementById('alertlist');if(!el)return;
+  if(!alerts.length){el.innerHTML='<div class="alert ok"><div class="ico">✅</div><div class="body"><b>Aktif uyarı yok</b><span>Sistem sizi gerçek zamanlı izliyor · hız ve bağlantı durumu takip ediliyor</span></div><div class="time">Şimdi</div></div>';return;}
+  el.innerHTML=alerts.map(a=>
     `<div class="alert ${a.c}"><div class="ico">${a.i}</div><div class="body"><b>${a.t}</b><span>${a.s}</span></div><div class="time">${a.tm}</div></div>`).join('');
+}
+function logAlert(ic,t,s,cls){
+  alerts.unshift({c:cls||'',i:ic,t:t,s:s,tm:new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})});
+  if(alerts.length>20)alerts.pop();
+  renderAlerts();
 }
 renderAlerts();
 
@@ -533,12 +547,13 @@ let temp=22;
 function tempChg(d){temp=Math.min(30,Math.max(16,temp+d));document.getElementById('tv').textContent=temp;}
 
 let pt;
-function showAlert(ic,t,s){
+function showAlert(ic,t,s,cls){
   document.getElementById('pp-ic').textContent=ic;
   document.getElementById('pp-t').textContent=t;
   document.getElementById('pp-s').textContent=s;
   const p=document.getElementById('popup');p.classList.add('show');
   clearTimeout(pt);pt=setTimeout(()=>p.classList.remove('show'),3200);
+  if(typeof logAlert==='function')logAlert(ic,t,s,cls);
 }
 
 // ---- Test sesi (çevrimdışı hoparlör kontrolü) ----
@@ -554,26 +569,17 @@ function testTone(){
   }catch(e){setStatus('⚠ Ses çıkışı açılamadı','var(--warn)');}
 }
 
-// Uyarı sistemi: sadece HAREKET HALİNDEYKEN uyarı verir (varsayılan: kapalı/park)
+// ================= GERÇEK UYARI SİSTEMİ =================
+// Sahte/demo uyarı YOK. Uyarılar yalnızca GERÇEK GPS hızına göre verilir.
 let driving=false;
-function toggleDriving(el){
-  driving=!driving;
-  el.classList.toggle('on',driving);
-  el.querySelector('b').textContent=driving?'Sürüş Modu: AÇIK':'Sürüş Modu: KAPALI (Park)';
-  showAlert(driving?'🚗':'🅿️',driving?'Sürüş Modu':'Park Modu',driving?'Yol uyarıları aktif':'Uyarılar durduruldu');
+let lastSpeedWarn=0;
+const SPEED_LIMIT=120; // km/s varsayılan yol hız limiti
+function checkSpeedWarn(kmh){
+  if(kmh>SPEED_LIMIT && Date.now()-lastSpeedWarn>20000){
+    lastSpeedWarn=Date.now();
+    showAlert('🚨','Hız Uyarısı',kmh+' km/s · Limit '+SPEED_LIMIT+' km/s aşıldı');
+  }
 }
-const demoAlerts=[
-  ['📷','Hız Kamerası','400 m ileride · Limit 82 km/s'],
-  ['⚠️','Keskin Viraj','Yaklaşıyorsunuz, hızı azaltın'],
-  ['🚦','Kırmızı Işık','200 m ileride trafik ışığı']
-];
-let di=0;
-// Uyarılar YALNIZCA sürüş modu açıkken gösterilir
-setInterval(()=>{
-  if(!driving)return;
-  const a=demoAlerts[di%demoAlerts.length];showAlert(a[0],a[1],a[2]);di++;
-},15000);
-setTimeout(()=>showAlert('👋','NaviMax Hoş Geldiniz','Sistem hazır · Uyarılar park modunda kapalı'),1200);
 
 // ================= GERÇEK BAĞLANTI & VERİLER =================
 
@@ -583,8 +589,12 @@ function updateNet(){
   const dw=document.getElementById('dot-wifi');
   const nt=document.getElementById('nettxt');
   const ng=document.getElementById('netgen');
+  const dc=document.getElementById('dot-conn');
+  const ct=document.getElementById('conntxt');
   const c=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
   dw.classList.toggle('off',!on);
+  if(dc){dc.classList.toggle('off',!on);dc.style.background=on?'var(--ok)':'';dc.style.boxShadow=on?'0 0 10px var(--ok)':'';}
+  if(ct){ct.textContent=on?'BAĞLANDI':'BAĞLANTI YOK';ct.style.color=on?'var(--ok)':'var(--warn)';}
   if(!on){nt.textContent='Çevrimdışı';ng.textContent='📵 Yok';return;}
   if(c){
     const t=c.type;
@@ -595,8 +605,8 @@ function updateNet(){
   }else{nt.textContent='Çevrimiçi';ng.textContent='📶 AĞ';}
 }
 updateNet();
-window.addEventListener('online',updateNet);
-window.addEventListener('offline',updateNet);
+window.addEventListener('online',()=>{updateNet();if(typeof logAlert==='function')logAlert('🟢','İnternet Bağlandı','Ağ bağlantısı yeniden kuruldu','ok');});
+window.addEventListener('offline',()=>{updateNet();if(typeof logAlert==='function')logAlert('🔴','İnternet Kesildi','Ağ bağlantısı kayboldu','');});
 if(navigator.connection)navigator.connection.addEventListener('change',updateNet);
 
 // ---- Bluetooth durumu ----
@@ -621,6 +631,7 @@ function onGeo(p){
   if(mp){const d=0.02;mp.src='https://www.openstreetmap.org/export/embed.html?bbox='+(geoLon-d)+'%2C'+(geoLat-d)+'%2C'+(geoLon+d)+'%2C'+(geoLat+d)+'&layer=mapnik&marker='+geoLat+'%2C'+geoLon;}
   // Uyarı sadece hareket halindeyken
   driving = kmh>3;
+  checkSpeedWarn(kmh);
   // Konum adı + hava (60 sn'de bir)
   if(Date.now()-lastWx>60000){lastWx=Date.now();fetchPlace();fetchWeather();}
 }
@@ -666,6 +677,31 @@ function fetchWeather(){
 }
 // İlk açılışta (GPS gelmeden) yaklaşık hava
 setTimeout(()=>{fetchWeather();fetchPlace();},1500);
+
+// ---- Kayar yazı (marquee) dinamik içerik ----
+function updateMarquee(){
+  const m=document.getElementById('marquee');if(!m)return;
+  const parts=[];
+  parts.push('<b>NAVİMEX PRO V01</b>');
+  const city=window.__city;
+  const wt=document.getElementById('w-temp');
+  const wtemp=wt?wt.textContent:'';
+  const wdesc=document.getElementById('w-desc');
+  if(city)parts.push('📍 '+city);
+  if(wtemp&&wtemp!=='--°')parts.push('🌡️ '+wtemp+(wdesc&&wdesc.textContent?(' '+wdesc.textContent.split(' · ')[0]):''));
+  const ns=document.getElementById('nav-speed');
+  if(ns&&+ns.textContent>0)parts.push('🚗 '+ns.textContent+' km/s');
+  const rn=document.getElementById('rname');
+  if(rn)parts.push('📻 '+rn.textContent);
+  const on=navigator.onLine;
+  parts.push(on?'🟢 İnternet: BAĞLANDI':'🔴 İnternet: YOK');
+  const now=new Date();
+  parts.push('🕒 '+now.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}));
+  parts.push('Yapımcı: <b>HALİL KILIÇ</b>');
+  m.innerHTML=parts.join('<span class="sep">⬥</span>');
+}
+updateMarquee();
+setInterval(updateMarquee,5000);
 </script>
 </body>
 </html>
