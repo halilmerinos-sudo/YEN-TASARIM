@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>NaviMax Media Center</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.15/hls.min.js"></script>
 <style>
 :root{
   --bg:#0a0e17; --panel:#131a29; --panel2:#1b2438; --accent:#00d4ff;
@@ -185,11 +186,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
         <div class="tb-date" id="date"></div>
       </div>
       <div class="tb-right">
-        <div class="stat"><span class="dot"></span>GPS</div>
-        <div class="stat"><span class="dot"></span>Bluetooth</div>
-        <div class="stat"><span class="dot off"></span>WiFi</div>
-        <div class="stat" id="outtemp">🌡️ 21°C</div>
-        <div class="stat">📶 4G</div>
+        <div class="stat"><span class="dot off" id="dot-gps"></span>GPS</div>
+        <div class="stat"><span class="dot off" id="dot-bt"></span>Bluetooth</div>
+        <div class="stat"><span class="dot off" id="dot-wifi"></span><span id="nettxt">Ağ</span></div>
+        <div class="stat" id="outtemp">🌡️ --°C</div>
+        <div class="stat" id="netgen">📶 --</div>
       </div>
     </div>
 
@@ -201,7 +202,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
         <div class="grid g3">
           <div class="card">
             <h3>Hava Durumu</h3>
-            <div class="wbig"><div class="ic">⛅</div><div><div class="t">21°</div><div style="color:var(--mut);font-size:13px">Parçalı bulutlu · İstanbul</div></div></div>
+            <div class="wbig"><div class="ic" id="w-ic">⛅</div><div><div class="t" id="w-temp">--°</div><div style="color:var(--mut);font-size:13px" id="w-desc">Konum bekleniyor...</div></div></div>
           </div>
           <div class="card">
             <h3>Şu An Çalıyor</h3>
@@ -243,7 +244,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
               <div class="cbtn big" id="rplay" onclick="togglePlay(this)"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
               <div class="cbtn" onclick="tuneStep(1)"><svg viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6zM13 6v12l8.5-6z"/></svg></div>
             </div>
-            <div class="sliderrow"><label>Ses</label><input type="range" min="0" max="100" value="65"></div>
+            <div class="sliderrow"><label>Ses</label><input type="range" min="0" max="100" value="80" oninput="setVol(this.value)"></div>
+            <div id="audiostatus" style="text-align:center;font-size:13px;color:var(--mut);margin-top:12px;min-height:18px">▶ İstasyon seçin veya oynat tuşuna basın</div>
+            <div class="toggle" onclick="testTone()" style="margin-top:12px;padding:12px"><span class="ic">🔊</span>Hoparlör Test Sesi</div>
           </div>
           <div class="card">
             <h3>Kayıtlı İstasyonlar</h3>
@@ -256,10 +259,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
       <div class="page" id="nav">
         <h2 class="title">Navigasyon <span class="badge">Canlı</span></h2>
         <div class="mapwrap">
-          <iframe src="https://www.openstreetmap.org/export/embed.html?bbox=28.90%2C41.00%2C29.10%2C41.10&layer=mapnik" loading="lazy"></iframe>
+          <iframe id="navmap" src="https://www.openstreetmap.org/export/embed.html?bbox=28.90%2C41.00%2C29.10%2C41.10&layer=mapnik" loading="lazy"></iframe>
           <div class="nav-overlay">
-            <div class="nav-turn"><div class="arrow">↱</div><div class="txt"><b>800 m</b><span>Sağa dön · E-5 Bağlantı Yolu</span></div></div>
-            <div class="nav-speed"><b>50</b><span>km/s</span></div>
+            <div class="nav-turn"><div class="arrow">📍</div><div class="txt"><b id="nav-loc">Konum alınıyor...</b><span id="nav-coord">GPS izni bekleniyor</span></div></div>
+            <div class="nav-speed"><b id="nav-speed">0</b><span>km/s</span></div>
           </div>
           <div class="nav-bottom">
             <div><div class="big" id="eta">18 dk</div><div class="lbl">Varış</div></div>
@@ -301,12 +304,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
             <div class="sliderrow"><label id="mcur">1:12</label><input type="range" min="0" max="100" value="35"><label id="mtot">3:40</label></div>
             <div class="controls">
               <div class="cbtn"><svg viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6zM20 18V6l-8.5 6z"/></svg></div>
-              <div class="cbtn big" onclick="togglePlay(this)"><svg viewBox="0 0 24 24"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg></div>
+              <div class="cbtn big" onclick="togglePlayMusic(this)"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
               <div class="cbtn"><svg viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6zM13 6v12l8.5-6z"/></svg></div>
             </div>
           </div>
           <div class="card">
             <h3>Çalma Listesi</h3>
+            <label style="display:block;background:linear-gradient(135deg,var(--accent2),var(--accent));color:#03121b;font-weight:700;text-align:center;padding:12px;border-radius:12px;cursor:pointer;margin-bottom:12px">📁 Cihazdan Müzik Seç<input type="file" accept="audio/*" multiple style="display:none" onchange="loadFiles(this.files)"></label>
             <div id="tracks"></div>
           </div>
         </div>
@@ -315,6 +319,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
       <!-- UYARILAR -->
       <div class="page" id="alerts">
         <h2 class="title">Uyarılar & Güvenlik</h2>
+        <div class="toggle" onclick="toggleDriving(this)" style="max-width:340px;margin-bottom:16px;padding:14px"><span class="ic">🅿️</span><b>Sürüş Modu: KAPALI (Park)</b><div style="font-size:11px;color:var(--mut);margin-top:4px">Açılınca yol uyarıları verilir</div></div>
         <div id="alertlist"></div>
       </div>
 
@@ -371,33 +376,98 @@ function tick(){
 tick();setInterval(tick,1000);
 
 const stations=[
-  {f:'88.4',n:'TRT FM'},{f:'89.6',n:'TRT 3'},{f:'90.0',n:'Alem FM'},
-  {f:'91.5',n:'Joy Türk'},{f:'92.3',n:'Kral FM'},{f:'93.3',n:'Radyo Fenomen'},
-  {f:'94.3',n:'Slow Turk'},{f:'95.0',n:'Joy FM'},{f:'96.2',n:'Radyo Viva'},
-  {f:'97.4',n:'Radyo 7'},{f:'98.4',n:'Virgin Radio'},{f:'100.0',n:'Power FM'},
-  {f:'101.5',n:'Power Türk'},{f:'102.3',n:'Metro FM'},{f:'103.3',n:'Süper FM'},
-  {f:'104.4',n:'Best FM'},{f:'105.2',n:'Radyo Spor'},{f:'106.2',n:'Radyo D'},
-  {f:'107.0',n:'Kral Pop'},{f:'107.4',n:'Number1'},{f:'99.5',n:'Show Radyo'},
-  {f:'88.8',n:'Radyo Voyage'}
+  {f:"94.70",n:"Kral Pop",cat:"Pop",src:["https://ssldyg.radyotvonline.com/smil/smil:kralpop.smil/playlist.m3u8","http://46.20.3.201/;type=mp3","https://dygmaster.radyotvonline.net/kralpop/playlist.m3u8"]},
+  {f:"98.60",n:"Kral FM",cat:"Arabesk",src:["https://ssldyg.radyotvonline.com/smil/smil:kralfm.smil/playlist.m3u8","http://46.20.3.204/;type=mp3","https://dygmaster.radyotvonline.net/kralfm/playlist.m3u8"]},
+  {f:"105.60",n:"Baba Radyo",cat:"Arabesk",src:["https://babaradyo.turkhosted.com/best/babaradyo.stream/playlist.m3u8","https://37.247.98.7/babaradyomp3","https://officialbabaradyo.radyotvonline.net/babaofficial"]},
+  {f:"99.90",n:"Kral Ferdi Tayfur",cat:"Arabesk",src:["http://46.20.3.250/;stream","https://ssl4.radyotvonline.com/radyo7/radyo7_home.stream/playlist.m3u8"]},
+  {f:"94.40",n:"Efsane 4'lü",cat:"Arabesk",src:["https://moondigitalmaster.radyotvonline.net/efsane4lu/playlist.m3u8","http://37.247.98.8/stream/19/"]},
+  {f:"96.90",n:"Park FM",cat:"Arabesk",src:["https://s03.diazol.hu:7142/stream.mp3","http://park.netradyom.com:1345/;stream.nsv"]},
+  {f:"100.00",n:"Power FM",cat:"Pop",src:["https://listen.powerapp.com.tr/powerfm/mpeg/icecast.audio"]},
+  {f:"106.60",n:"Pal FM",cat:"Pop",src:["https://moondigitalmaster.radyotvonline.net/palfm/playlist.m3u8","https://ssl4.radyotvonline.com/radyohome/palfmhome.stream_aac/playlist.m3u8"]},
+  {f:"90.10",n:"Risalet Radyo",cat:"Din",src:["https://eustr73.mediatriple.net/videoonlylive/mtikoimxnztxlive/broadcast_5e3c1520b2626.smil/playlist.m3u8","https://eustr76.mediatriple.net/videoonlylive/mtikoimxnztxlive/broadcast_5e3c1520b2626.smil/playlist.m3u8"]},
+  {f:"91.60",n:"VAV Radyo",cat:"Din",src:["https://trkvz-radyolar.ercdn.net/radyovav/playlist.m3u8"]},
+  {f:"93.60",n:"Radyo Turkuvaz",cat:"Genel",src:["https://trkvz-radyolar.ercdn.net/radyoturkuvaz/playlist.m3u8","https://moondigitalmaster2.radyotvonline.net/radyoturkuvaz/playlist.m3u8"]},
+  {f:"95.30",n:"Turkuvaz Musiki",cat:"Sanat",src:["https://trkvz-radyolar.ercdn.net/turkuvazmusiki/playlist.m3u8"]},
+  {f:"97.10",n:"Turkuvaz Nostalji",cat:"Nostalji",src:["https://trkvz-radyolar.ercdn.net/turkuvaznostalji/playlist.m3u8"]},
+  {f:"94.90",n:"Turkuvaz Efsane",cat:"Arabesk",src:["https://trkvz-radyolar.ercdn.net/turkuvazefsane/playlist.m3u8"]},
+  {f:"101.90",n:"Turkuvaz Romantik",cat:"Romantik",src:["https://trkvz-radyolar.ercdn.net/turkuvazromantik/playlist.m3u8"]},
+  {f:"103.40",n:"Turkuvaz Anadolu",cat:"Türkü",src:["https://trkvz-radyolar.ercdn.net/turkuvazanadolu/playlist.m3u8"]},
+  {f:"99.30",n:"Radyo Energy",cat:"Pop",src:["https://trkvz-radyolar.ercdn.net/radyoenergy/playlist.m3u8"]},
+  {f:"88.90",n:"Radyo Soft",cat:"Pop",src:["https://trkvz-radyolar.ercdn.net/radyosoft/playlist.m3u8"]},
+  {f:"95.00",n:"Joy Jazz",cat:"Caz",src:["https://playerservices.streamtheworld.com/api/livestream-redirect/JOY_JAZZ128AAC.aac"]},
+  {f:"98.20",n:"Joy Türk Akustik",cat:"Akustik",src:["https://playerservices.streamtheworld.com/api/livestream-redirect/JOYTURK_AKUSTIK128AAC.aac"]},
+  {f:"96.10",n:"Fenomen Pop",cat:"Pop",src:["https://live.radyofenomen.com/fenomenpop/abr/playlist.m3u8"]},
+  {f:"96.40",n:"Fenomen Türk",cat:"Pop",src:["https://live.radyofenomen.com/fenomenturk/abr/playlist.m3u8"]},
+  {f:"90.90",n:"90'lar Radyo",cat:"Nostalji",src:["https://moondigitalmaster.radyotvonline.net/90lar/playlist.m3u8","https://moondigitaledge.radyotvonline.net/90lar/playlist.m3u8"]},
+  {f:"102.30",n:"Ankara Havaları",cat:"Türkü",src:["https://moondigitalmaster.radyotvonline.net/ankarahavalari/playlist.m3u8"]},
+  {f:"104.20",n:"Karadeniz FM",cat:"Türkü",src:["https://moondigitaledge.radyotvonline.net/karadenizfm/playlist.m3u8","http://moondigitalmaster.radyotvonline.net/karadenizfm/playlist.m3u8"]},
+  {f:"101.10",n:"Alem FM",cat:"Genel",src:["https://alemfm.radyotvonline.net/alemfmaac","http://turkmedya.radyotvonline.net/alemfmaac"]},
+  {f:"98.40",n:"Best FM",cat:"Pop",src:["https://officialbestfm.radyotvonline.net/bestfmofficial","https://bestfm.turkhosted.com/;stream.mp3"]},
+  {f:"90.20",n:"A Haber Radyo",cat:"Haber",src:["https://trkvz-radyolar.ercdn.net/ahaberradyo/playlist.m3u8"]},
+  {f:"87.60",n:"A News Radio",cat:"Haber",src:["https://trkvz-radyolar.ercdn.net/anewsradyo/playlist.m3u8"]},
+  {f:"92.40",n:"A Spor Radyo",cat:"Spor",src:["https://trkvz-radyolar.ercdn.net/asporradyo/playlist.m3u8"]},
+  {f:"89.80",n:"A Para Radyo",cat:"Ekonomi",src:["https://trkvz-radyolar.ercdn.net/apararadyo/playlist.m3u8"]}
 ];
-let cur=11;
+let cur=6;
+
+// ---- Gercek ses motoru (HLS + yedek kaynak) ----
+const audio=new Audio();
+audio.preload='none';
+audio.setAttribute('playsinline','');
+document.body.appendChild(audio);   // DOM'a ekli olması bazı cihazlarda sesin çıkması için şart
+let hls=null;
+function setStatus(msg,color){
+  let el=document.getElementById('audiostatus');
+  if(el){el.textContent=msg;el.style.color=color||'var(--mut)';}
+}
+function destroyHls(){if(hls){try{hls.destroy();}catch(e){}hls=null;}audio.pause();try{audio.removeAttribute('src');audio.load();}catch(e){}}
+function playStation(i){
+  cur=i;updateRadio();renderPresets();
+  const s=stations[i];
+  tryStream(s,0);
+}
+function markPlaying(){
+  audio.muted=false;
+  audio.volume=(window.__vol!=null?window.__vol:0.85);
+  const b=document.getElementById('rplay');
+  if(b){b.dataset.p='1';b.querySelector('svg').innerHTML='<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>';}
+}
+function tryStream(s,idx){
+  if(idx>=s.src.length){setStatus('⚠ '+s.n+' açılamadı. İnternet bağlantısını kontrol edin veya başka istasyon deneyin.','var(--warn)');return;}
+  const url=s.src[idx];
+  setStatus('Bağlanıyor: '+s.n+' ...','#f5b83d');
+  destroyHls();
+  const isHls=/\.m3u8($|\?)/i.test(url)||/\.smil/i.test(url);
+  const canNativeHls=audio.canPlayType('application/vnd.apple.mpegurl')!=='';
+  if(isHls && window.Hls && Hls.isSupported() && !canNativeHls){
+    hls=new Hls({enableWorker:true,maxBufferLength:30});
+    hls.loadSource(url);hls.attachMedia(audio);
+    hls.on(Hls.Events.MANIFEST_PARSED,()=>{const p=audio.play();if(p)p.then(()=>{setStatus('▶ Çalıyor: '+s.n,'var(--ok)');markPlaying();}).catch(()=>tryStream(s,idx+1));});
+    hls.on(Hls.Events.ERROR,(e,d)=>{if(d.fatal){tryStream(s,idx+1);}});
+  }else{
+    audio.src=url;audio.load();
+    const p=audio.play();
+    if(p)p.then(()=>{setStatus('▶ Çalıyor: '+s.n,'var(--ok)');markPlaying();}).catch(()=>tryStream(s,idx+1));
+    audio.onerror=()=>tryStream(s,idx+1);
+  }
+}
 function renderPresets(){
   document.getElementById('presets').innerHTML=stations.map((s,i)=>
     `<div class="preset ${i===cur?'on':''}" onclick="pick(${i})"><b>${s.f}</b><span>${s.n}</span></div>`).join('');
 }
-function pick(i){cur=i;updateRadio();renderPresets();}
+function pick(i){playStation(i);}
 function updateRadio(){
   const s=stations[cur];
   document.getElementById('rfreq').innerHTML=s.f+'<small>MHz</small>';
   document.getElementById('rname').textContent=s.n;
 }
-function tuneStep(d){cur=(cur+d+stations.length)%stations.length;updateRadio();renderPresets();}
+function tuneStep(d){playStation((cur+d+stations.length)%stations.length);}
 renderPresets();updateRadio();
 
 function togglePlay(el){
   const playing=el.dataset.p==='1';
-  el.dataset.p=playing?'0':'1';
-  el.querySelector('svg').innerHTML=playing?'<path d="M8 5v14l11-7z"/>':'<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>';
+  if(playing){audio.pause();destroyHls();el.dataset.p='0';el.querySelector('svg').innerHTML='<path d="M8 5v14l11-7z"/>';setStatus('Duraklatıldı');}
+  else{playStation(cur);}
 }
 
 function switchCam(el,name){
@@ -406,22 +476,43 @@ function switchCam(el,name){
   document.getElementById('camname').textContent=name;
 }
 
-const tracks=[
-  {t:'Otoban Ritmi',a:'DJ Voyage',d:'3:40'},{t:'Gece Sürüşü',a:'Lo-Fi Roads',d:'4:12'},
-  {t:'Şehir Işıkları',a:'Synth Drive',d:'3:05'},{t:'Uzun Yol',a:'Acoustic Trip',d:'5:20'},
-  {t:'Sabah Trafiği',a:'Chill Motor',d:'2:58'},{t:'Dönüş Yolu',a:'Night Cruise',d:'4:44'}
+function setVol(v){window.__vol=v/100;audio.volume=v/100;audio.muted=false;music.volume=v/100;}
+audio.volume=0.85;window.__vol=0.85;
+
+// ---- Muzik (cihazdan) ----
+const music=new Audio();music.volume=0.8;
+let tracks=[
+  {t:'Otoban Ritmi',a:'Demo – kendi müziğinizi ekleyin',d:'--:--',src:null},
+  {t:'Gece Sürüşü',a:'Demo',d:'--:--',src:null},
+  {t:'Şehir Işıkları',a:'Demo',d:'--:--',src:null}
 ];
+function fmt(s){s=Math.floor(s||0);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}
+function loadFiles(files){
+  tracks=[...files].map(f=>({t:f.name.replace(/\.[^.]+$/,''),a:'Cihazdan',d:'--:--',src:URL.createObjectURL(f)}));
+  renderTracks();
+  if(tracks.length){playTrack(0,document.querySelector('.track'));}
+}
 function renderTracks(){
   document.getElementById('tracks').innerHTML=tracks.map((t,i)=>
     `<div class="track ${i===0?'on':''}" onclick="playTrack(${i},this)"><div class="num">${i+1}</div><div class="ti"><b>${t.t}</b><span>${t.a}</span></div><div class="dur">${t.d}</div></div>`).join('');
 }
 function playTrack(i,el){
   document.querySelectorAll('.track').forEach(t=>t.classList.remove('on'));
-  el.classList.add('on');
+  if(el)el.classList.add('on');
   document.getElementById('mtitle').textContent=tracks[i].t;
   document.getElementById('martist').textContent=tracks[i].a;
-  document.getElementById('mtot').textContent=tracks[i].d;
+  if(tracks[i].src){music.src=tracks[i].src;music.play();}
+  else{alert('Bu bir demo parçası. Ses için "Cihazdan Müzik Seç" ile kendi şarkılarınızı yükleyin.');}
 }
+function togglePlayMusic(el){
+  if(music.paused){music.play();el.querySelector('svg').innerHTML='<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>';}
+  else{music.pause();el.querySelector('svg').innerHTML='<path d="M8 5v14l11-7z"/>';}
+}
+music.ontimeupdate=()=>{
+  const c=document.getElementById('mcur'),t=document.getElementById('mtot');
+  if(c)c.textContent=fmt(music.currentTime);
+  if(t&&music.duration)t.textContent=fmt(music.duration);
+};
 renderTracks();
 
 const alerts=[
@@ -449,14 +540,132 @@ function showAlert(ic,t,s){
   const p=document.getElementById('popup');p.classList.add('show');
   clearTimeout(pt);pt=setTimeout(()=>p.classList.remove('show'),3200);
 }
+
+// ---- Test sesi (çevrimdışı hoparlör kontrolü) ----
+let actx;
+function testTone(){
+  try{
+    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    const o=actx.createOscillator(),g=actx.createGain();
+    o.type='sine';o.frequency.value=440;g.gain.value=0.2;
+    o.connect(g);g.connect(actx.destination);o.start();
+    setStatus('🔊 Test sesi çalıyor... hoparlör çalışıyor demektir','var(--ok)');
+    setTimeout(()=>{o.stop();},1500);
+  }catch(e){setStatus('⚠ Ses çıkışı açılamadı','var(--warn)');}
+}
+
+// Uyarı sistemi: sadece HAREKET HALİNDEYKEN uyarı verir (varsayılan: kapalı/park)
+let driving=false;
+function toggleDriving(el){
+  driving=!driving;
+  el.classList.toggle('on',driving);
+  el.querySelector('b').textContent=driving?'Sürüş Modu: AÇIK':'Sürüş Modu: KAPALI (Park)';
+  showAlert(driving?'🚗':'🅿️',driving?'Sürüş Modu':'Park Modu',driving?'Yol uyarıları aktif':'Uyarılar durduruldu');
+}
 const demoAlerts=[
   ['📷','Hız Kamerası','400 m ileride · Limit 82 km/s'],
   ['⚠️','Keskin Viraj','Yaklaşıyorsunuz, hızı azaltın'],
   ['🚦','Kırmızı Işık','200 m ileride trafik ışığı']
 ];
 let di=0;
-setInterval(()=>{const a=demoAlerts[di%demoAlerts.length];showAlert(a[0],a[1],a[2]);di++;},9000);
-setTimeout(()=>showAlert('👋','NaviMax Hoş Geldiniz','Sistem hazır · İyi yolculuklar'),1200);
+// Uyarılar YALNIZCA sürüş modu açıkken gösterilir
+setInterval(()=>{
+  if(!driving)return;
+  const a=demoAlerts[di%demoAlerts.length];showAlert(a[0],a[1],a[2]);di++;
+},15000);
+setTimeout(()=>showAlert('👋','NaviMax Hoş Geldiniz','Sistem hazır · Uyarılar park modunda kapalı'),1200);
+
+// ================= GERÇEK BAĞLANTI & VERİLER =================
+
+// ---- Ağ / WiFi / hücresel durumu ----
+function updateNet(){
+  const on=navigator.onLine;
+  const dw=document.getElementById('dot-wifi');
+  const nt=document.getElementById('nettxt');
+  const ng=document.getElementById('netgen');
+  const c=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
+  dw.classList.toggle('off',!on);
+  if(!on){nt.textContent='Çevrimdışı';ng.textContent='📵 Yok';return;}
+  if(c){
+    const t=c.type;
+    if(t==='wifi'){nt.textContent='WiFi';}
+    else if(t==='cellular'){nt.textContent='Mobil';}
+    else{nt.textContent='Çevrimiçi';}
+    ng.textContent='📶 '+(c.effectiveType?c.effectiveType.toUpperCase():'AĞ');
+  }else{nt.textContent='Çevrimiçi';ng.textContent='📶 AĞ';}
+}
+updateNet();
+window.addEventListener('online',updateNet);
+window.addEventListener('offline',updateNet);
+if(navigator.connection)navigator.connection.addEventListener('change',updateNet);
+
+// ---- Bluetooth durumu ----
+(function(){
+  const db=document.getElementById('dot-bt');
+  if(navigator.bluetooth&&navigator.bluetooth.getAvailability){
+    navigator.bluetooth.getAvailability().then(av=>{db.classList.toggle('off',!av);}).catch(()=>db.classList.add('off'));
+  }else{db.classList.add('off');}
+})();
+
+// ---- GPS / Konum / Hız ----
+let geoLat=41.015,geoLon=28.98,lastWx=0;
+function onGeo(p){
+  const c=p.coords;
+  geoLat=c.latitude;geoLon=c.longitude;
+  document.getElementById('dot-gps').classList.remove('off');
+  const kmh=Math.max(0,Math.round((c.speed||0)*3.6));
+  const ns=document.getElementById('nav-speed');if(ns)ns.textContent=kmh;
+  const cd=document.getElementById('nav-coord');if(cd)cd.textContent=c.latitude.toFixed(4)+', '+c.longitude.toFixed(4)+' · ±'+Math.round(c.accuracy)+'m';
+  // Harita merkezi
+  const mp=document.getElementById('navmap');
+  if(mp){const d=0.02;mp.src='https://www.openstreetmap.org/export/embed.html?bbox='+(geoLon-d)+'%2C'+(geoLat-d)+'%2C'+(geoLon+d)+'%2C'+(geoLat+d)+'&layer=mapnik&marker='+geoLat+'%2C'+geoLon;}
+  // Uyarı sadece hareket halindeyken
+  driving = kmh>3;
+  // Konum adı + hava (60 sn'de bir)
+  if(Date.now()-lastWx>60000){lastWx=Date.now();fetchPlace();fetchWeather();}
+}
+function onGeoErr(e){
+  document.getElementById('dot-gps').classList.add('off');
+  const cd=document.getElementById('nav-coord');
+  if(cd)cd.textContent=e.code===1?'Konum izni reddedildi':'Konum alınamıyor';
+  // Yine de yaklaşık konumdan hava getir
+  if(Date.now()-lastWx>60000){lastWx=Date.now();fetchWeather();}
+}
+if(navigator.geolocation){
+  navigator.geolocation.watchPosition(onGeo,onGeoErr,{enableHighAccuracy:true,maximumAge:5000,timeout:15000});
+}else{
+  document.getElementById('dot-gps').classList.add('off');
+}
+
+// ---- Konum adı (reverse geocode, anahtar gerektirmez) ----
+function fetchPlace(){
+  fetch('https://api.bigdatacloud.net/data/reverse-geocode-client?latitude='+geoLat+'&longitude='+geoLon+'&localityLanguage=tr')
+    .then(r=>r.json()).then(d=>{
+      const city=d.city||d.locality||d.principalSubdivision||'';
+      const el=document.getElementById('nav-loc');if(el&&city)el.textContent=city;
+      window.__city=city;
+      const wd=document.getElementById('w-desc');
+    }).catch(()=>{});
+}
+
+// ---- Gerçek hava durumu (Open-Meteo, anahtar gerektirmez) ----
+const wxIcons={0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌦️',55:'🌦️',61:'🌧️',63:'🌧️',65:'🌧️',71:'🌨️',73:'🌨️',75:'❄️',80:'🌦️',81:'🌧️',82:'⛈️',95:'⛈️',96:'⛈️',99:'⛈️'};
+const wxDesc={0:'Açık',1:'Az bulutlu',2:'Parçalı bulutlu',3:'Kapalı',45:'Sisli',48:'Sisli',51:'Çiseleme',53:'Çiseleme',55:'Çiseleme',61:'Hafif yağmur',63:'Yağmurlu',65:'Kuvvetli yağmur',71:'Hafif kar',73:'Kar yağışlı',75:'Yoğun kar',80:'Sağanak',81:'Sağanak',82:'Kuvvetli sağanak',95:'Gök gürültülü',96:'Dolu',99:'Dolu'};
+function fetchWeather(){
+  fetch('https://api.open-meteo.com/v1/forecast?latitude='+geoLat+'&longitude='+geoLon+'&current=temperature_2m,weather_code&timezone=auto')
+    .then(r=>r.json()).then(d=>{
+      if(!d.current)return;
+      const t=Math.round(d.current.temperature_2m);
+      const code=d.current.weather_code;
+      const ic=wxIcons[code]||'⛅',desc=wxDesc[code]||'';
+      document.getElementById('outtemp').textContent='🌡️ '+t+'°C';
+      const wt=document.getElementById('w-temp');if(wt)wt.textContent=t+'°';
+      const wi=document.getElementById('w-ic');if(wi)wi.textContent=ic;
+      const wd=document.getElementById('w-desc');if(wd)wd.textContent=desc+(window.__city?' · '+window.__city:'');
+    }).catch(()=>{});
+}
+// İlk açılışta (GPS gelmeden) yaklaşık hava
+setTimeout(()=>{fetchWeather();fetchPlace();},1500);
 </script>
 </body>
 </html>
