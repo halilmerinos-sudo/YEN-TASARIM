@@ -88,6 +88,18 @@ h2.title{font-size:22px;margin-bottom:16px;display:flex;align-items:center;gap:1
 .gps-bar .btn.pri{background:linear-gradient(135deg,var(--accent2),var(--accent));color:#03121b;border:none;}
 .gps-bar .btn.dng{color:var(--warn);}
 .gps-bar .cnt{margin-left:auto;font-size:12px;color:var(--mut);}
+.speedlimit{position:absolute;top:96px;right:14px;width:70px;height:70px;border-radius:50%;background:#fff;border:6px solid #e11;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:500;box-shadow:0 4px 14px rgba(0,0,0,.4);}
+.speedlimit b{color:#111;font-size:26px;font-weight:900;line-height:1;}
+.speedlimit span{color:#111;font-size:8px;font-weight:700;}
+.speedlimit.na b{font-size:20px;color:#888;}
+.gps-speed.over{border-color:var(--warn);background:#ffe5e5;animation:ovp .7s infinite;}
+@keyframes ovp{50%{box-shadow:0 0 0 6px rgba(255,59,59,.4);}}
+.fsbtns{position:absolute;bottom:76px;right:14px;z-index:500;display:flex;flex-direction:column;gap:8px;}
+.fsbtn{width:46px;height:46px;border-radius:12px;background:rgba(11,17,28,.92);border:1px solid var(--bd);color:var(--txt);font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.fsbtn:active{transform:scale(.94);}
+.mapwrap:fullscreen{width:100vw;height:100vh;}
+.mapwrap:-webkit-full-screen{width:100vw;height:100vh;}
+.mapwrap.fauxfs{position:fixed;inset:0;z-index:2000;height:100vh;width:100vw;}
 /* Kayit tablosu */
 .logtbl{margin-top:16px;}
 .logtbl table{width:100%;border-collapse:collapse;font-size:13px;}
@@ -220,6 +232,10 @@ h2.title{font-size:22px;margin-bottom:16px;display:flex;align-items:center;gap:1
             <div class="row"><span>Yenileme</span><b style="color:var(--accent2)">3 sn</b></div>
           </div>
           <div class="gps-speed"><b id="nav-speed">0</b><span>km/s</span></div>
+          <div class="speedlimit na" id="speedlimit" title="Hız limiti"><b id="sl-val">--</b><span>km/s</span></div>
+          <div class="fsbtns">
+            <div class="fsbtn" id="fsbtn" onclick="toggleFullscreen()" title="Tam ekran">⛶</div>
+          </div>
           <div class="gps-bar">
             <button class="btn pri" id="gpsbtn" onclick="enableGPS()">📍 Konuma İzin Ver</button>
             <button class="btn" id="logbtn" onclick="toggleLog()">▶ Kaydı Başlat</button>
@@ -495,13 +511,48 @@ function onGeo(p){
   else{
     marker.setLatLng([geoLat,geoLon]);
     accCircle.setLatLng([geoLat,geoLon]).setRadius(Math.max(acc,5));
-    const moved=Math.abs(geoLat-lastMapLat)>0.0002||Math.abs(geoLon-lastMapLon)>0.0002;
-    if(moved){lastMapLat=geoLat;lastMapLon=geoLon;map.panTo([geoLat,geoLon],{animate:true,duration:.6});}
+    // Harita her güncellemede konumu takip etsin (kaysin)
+    map.panTo([geoLat,geoLon],{animate:true,duration:1.0});
   }
   trailPts.push([geoLat,geoLon]);if(trailPts.length>800)trailPts.shift();if(trail)trail.setLatLngs(trailPts);
-  if(kmh>SPEED_LIMIT&&Date.now()-lastSpeedWarn>20000){lastSpeedWarn=Date.now();showAlert('🚨','Hız Uyarısı',kmh+' km/s · Limit '+SPEED_LIMIT+' km/s aşıldı','');}
+  // Gerçek hız limiti kontrolü + uyarı
+  checkSpeed(kmh);
+  if(Date.now()-lastSL>15000){lastSL=Date.now();fetchSpeedLimit(geoLat,geoLon);}
   if(Date.now()-lastWx>30000){lastWx=Date.now();fetchWeather();}
   if(Date.now()-lastGeoName>20000){lastGeoName=Date.now();fetchPlace();}
+}
+// ---- Gerçek hız limiti (OpenStreetMap / Overpass maxspeed etiketi) ----
+let curLimit=null,lastSL=0;
+function fetchSpeedLimit(lat,lon){
+  const r=0.0016; // ~180m kutu
+  const q='[out:json][timeout:8];way(around:120,'+lat+','+lon+')["highway"]["maxspeed"];out tags center 5;';
+  fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:'data='+encodeURIComponent(q)})
+    .then(r=>r.json()).then(d=>{
+      let best=null;
+      (d.elements||[]).forEach(el=>{
+        let ms=el.tags&&el.tags.maxspeed;if(!ms)return;
+        let v=parseInt((''+ms).replace(/[^0-9]/g,''));if(!v)return;
+        if(/mph/i.test(ms))v=Math.round(v*1.60934);
+        if(best==null)best=v;
+      });
+      setSpeedLimit(best);
+    }).catch(()=>{});
+}
+function setSpeedLimit(v){
+  curLimit=v;
+  const el=document.getElementById('sl-val');const box=document.getElementById('speedlimit');
+  if(v){el.textContent=v;box.classList.remove('na');}
+  else{el.textContent='--';box.classList.add('na');}
+}
+function checkSpeed(kmh){
+  const gs=document.getElementById('nav-speed').parentElement;
+  const lim=curLimit||SPEED_LIMIT;
+  const over=kmh>lim+2;
+  if(gs)gs.classList.toggle('over',over);
+  if(over&&Date.now()-lastSpeedWarn>12000){
+    lastSpeedWarn=Date.now();
+    showAlert('🚨','Hız Limiti Aşıldı',kmh+' km/s · Limit '+lim+' km/s','');
+  }
 }
 function showBanner(html){var b=document.getElementById('gps-banner');if(!b)return;if(html){b.innerHTML=html;b.style.display='block';}else{b.style.display='none';}}
 function onGeoErr(e){
@@ -541,6 +592,31 @@ if(navigator.geolocation){
   },onGeoErr,{enableHighAccuracy:true,maximumAge:0,timeout:12000});
 }else{onGeoErr({code:2});}
 function recenter(){if(map&&geoLat!=null)map.setView([geoLat,geoLon],16);}
+// ---- Tam ekran ----
+function toggleFullscreen(){
+  const w=document.querySelector('.mapwrap');
+  const fsEl=document.fullscreenElement||document.webkitFullscreenElement||w.classList.contains('fauxfs');
+  if(!fsEl){
+    if(w.requestFullscreen)w.requestFullscreen();
+    else if(w.webkitRequestFullscreen)w.webkitRequestFullscreen();
+    else w.classList.add('fauxfs');
+    if(!w.requestFullscreen&&!w.webkitRequestFullscreen){document.getElementById('fsbtn').textContent='⛶✕';}
+  }else{
+    if(document.exitFullscreen)document.exitFullscreen();
+    else if(document.webkitExitFullscreen)document.webkitExitFullscreen();
+    w.classList.remove('fauxfs');
+    document.getElementById('fsbtn').textContent='⛶';
+  }
+  setTimeout(()=>{if(map)map.invalidateSize();},350);
+}
+function onFsChange(){
+  const fsEl=document.fullscreenElement||document.webkitFullscreenElement;
+  const b=document.getElementById('fsbtn');
+  if(b)b.textContent=fsEl?'⛶✕':'⛶';
+  setTimeout(()=>{if(map)map.invalidateSize();},350);
+}
+document.addEventListener('fullscreenchange',onFsChange);
+document.addEventListener('webkitfullscreenchange',onFsChange);
 // ---- GPS Kayıt tablosu (her 3 sn'de son gerçek konumu işle) ----
 setInterval(function(){if(logging&&lastFix)addLogRow(lastFix);},3000);
 function addLogRow(f){
