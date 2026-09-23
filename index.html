@@ -500,6 +500,7 @@ function onGeo(p){
   const c=p.coords;geoLat=c.latitude;geoLon=c.longitude;
   const kmh=Math.max(0,Math.round((c.speed||0)*3.6));
   const acc=Math.round(c.accuracy||0);
+  console.log('[NAVIMEX] Konum bulundu:',geoLat,geoLon,'dogruluk:',acc,'m hiz:',kmh,'km/s');
   lastFix={lat:geoLat,lon:geoLon,kmh:kmh,acc:acc,t:new Date()};
   document.getElementById('dot-gps').classList.add('on');
   const ns=document.getElementById('nav-speed');if(ns)ns.textContent=kmh;
@@ -557,15 +558,16 @@ function checkSpeed(kmh){
 function showBanner(html){var b=document.getElementById('gps-banner');if(!b)return;if(html){b.innerHTML=html;b.style.display='block';}else{b.style.display='none';}}
 function onGeoErr(e){
   document.getElementById('dot-gps').classList.remove('on');
+  console.log('[NAVIMEX] Konum HATASI code:',e&&e.code,'mesaj:',e&&e.message);
   var msg,tip;
   if(e.code===1){msg='Konum izni reddedildi';tip='iPhone: <b>Ayarlar › Gizlilik ve Güvenlik › Konum Servisleri</b> açık olmalı ve <b>Safari</b> için “Uygulamayı Kullanırken” seçili olmalı. Sonra sayfayı yenileyip <b>“Konuma İzin Ver”</b> tuşuna basın.';}
   else if(e.code===3){msg='Konum zaman aşımı';tip='Açık alanda tekrar deneyin; ilk sinyal birkaç saniye sürebilir. “Konuma İzin Ver” tuşuna tekrar basın.';}
   else{msg='Konum alınamıyor';tip='';}
   var el=document.getElementById('nav-loc');if(el)el.textContent=msg;
   document.getElementById('home-loc').textContent=msg;
-  // Güvenli bağlam (HTTPS) kontrolü – iOS Safari konumu yalnızca HTTPS'te verir
+  // Güvenli bağlam / WebView izin kontrolü
   if(!window.isSecureContext){
-    showBanner('⚠️ <b>Konum için güvenli bağlantı (HTTPS) gerekir.</b><br>Bu sayfa telefona indirilip <b>dosyadan (file://)</b> açılırsa iPhone Safari konum vermez. Lütfen sayfayı <b>https:// bağlantısı üzerinden</b> açın.');
+    showBanner('⚠️ <b>Konum alınamıyor.</b><br>• <b>Araç multimedya (Android WebView):</b> uygulamada <b>ACCESS_FINE_LOCATION</b> izni verilmeli ve WebView\'de <b>setGeolocationEnabled(true)</b> + <b>onGeolocationPermissionsShowPrompt</b> tanımlı olmalı.<br>• <b>Tarayıcı:</b> sayfa <b>https://</b> üzerinden açılmalı (file:// konum vermez).');
   }else if(tip){
     showBanner('📍 <b>'+msg+'.</b><br>'+tip);
   }
