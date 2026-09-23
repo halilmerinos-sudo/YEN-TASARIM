@@ -3,215 +3,588 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>NAVİMEX PRO V01 · GPS Takip</title>
+<title>NAVİMEX PRO V01</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
 <style>
-  :root{--bg:#0a0e16;--panel:#111826;--panel2:#0c1420;--txt:#e8eef7;--mut:#8ea0b8;--accent:#00b4ff;--accent2:#00e0a8;--ok:#22e08a;--warn:#ff3b3b;--bd:#1e2740;}
-  *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,Arial,sans-serif;}
-  html,body{height:100%;background:var(--bg);color:var(--txt);}
-  body{display:flex;flex-direction:column;height:100vh;overflow:hidden;}
-  .topbar{height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:#0c111c;border-bottom:1px solid var(--bd);flex-shrink:0;}
-  .logo{font-size:18px;font-weight:800;color:var(--accent);letter-spacing:1px;}
-  .logo small{color:var(--mut);font-weight:400;font-size:10px;letter-spacing:2px;display:block;line-height:1;}
-  .status{display:flex;align-items:center;gap:16px;font-size:13px;color:var(--mut);}
-  .stat{display:flex;align-items:center;gap:6px;white-space:nowrap;}
-  .dot{width:10px;height:10px;border-radius:50%;background:#455;transition:.3s;}
-  .dot.on{background:var(--ok);box-shadow:0 0 10px var(--ok);}
-  .wrap{flex:1;display:flex;min-height:0;}
-  #map{flex:1;min-width:0;background:#0c1420;}
-  .side{width:380px;max-width:42vw;display:flex;flex-direction:column;border-left:1px solid var(--bd);background:var(--panel);}
-  .cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px;}
-  .card{background:var(--panel2);border:1px solid var(--bd);border-radius:14px;padding:12px;}
-  .card .lbl{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;}
-  .card .val{font-size:22px;font-weight:800;margin-top:4px;}
-  .card .val small{font-size:12px;color:var(--mut);font-weight:500;}
-  .card.wide{grid-column:1/3;}
-  .btns{display:flex;gap:8px;padding:0 14px 12px;}
-  .btn{flex:1;padding:11px;border-radius:12px;border:none;font-size:13px;font-weight:700;cursor:pointer;background:var(--panel2);color:var(--txt);border:1px solid var(--bd);}
-  .btn.pri{background:linear-gradient(135deg,var(--accent2),var(--accent));color:#03121b;border:none;}
-  .btn.dng{color:var(--warn);}
-  .btn:active{transform:scale(.97);}
-  .tblhead{padding:8px 14px;font-size:12px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;display:flex;justify-content:space-between;align-items:center;}
-  .tblwrap{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:0 14px 14px;}
-  table{width:100%;border-collapse:collapse;font-size:12px;}
-  th,td{padding:7px 6px;text-align:left;border-bottom:1px solid var(--bd);white-space:nowrap;}
-  th{position:sticky;top:0;background:var(--panel);color:var(--mut);font-size:10px;text-transform:uppercase;letter-spacing:.5px;}
-  td{color:var(--txt);}
-  tr:hover td{background:rgba(0,180,255,.06);}
-  .empty{color:var(--mut);text-align:center;padding:24px 0;font-size:13px;}
-  @media(max-width:820px){.wrap{flex-direction:column;}.side{width:100%;max-width:100%;height:52%;border-left:none;border-top:1px solid var(--bd);}#map{height:48%;}}
+:root{--bg:#0a0e16;--panel:#111826;--panel2:#0c1420;--txt:#e8eef7;--mut:#8ea0b8;--accent:#00b4ff;--accent2:#00e0a8;--ok:#22e08a;--warn:#ff3b3b;--bd:#1e2740;}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,Arial,sans-serif;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);user-select:none;}
+#app{display:flex;height:100vh;width:100vw;}
+.sidebar{width:96px;background:linear-gradient(180deg,#131a29,#0c111c);display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:6px;border-right:1px solid var(--bd);flex-shrink:0;overflow-y:auto;}
+.logo{font-size:19px;font-weight:800;color:var(--accent);letter-spacing:1px;margin-bottom:12px;text-align:center;line-height:1.1;}
+.logo small{display:block;font-size:8px;color:var(--mut);letter-spacing:1px;font-weight:400;margin-top:3px;}
+.navbtn{width:76px;height:66px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:var(--mut);cursor:pointer;transition:.2s;font-size:11px;flex-shrink:0;}
+.navbtn svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;}
+.navbtn.active{background:linear-gradient(135deg,var(--accent2),var(--accent));color:#03121b;font-weight:700;box-shadow:0 6px 18px rgba(0,150,255,.35);}
+.navbtn:not(.active):active{background:#1b2438;}
+.main{flex:1;display:flex;flex-direction:column;min-width:0;}
+.topbar{height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:#0c111c;border-bottom:1px solid var(--bd);flex-shrink:0;}
+.tb-left{display:flex;align-items:center;gap:14px;flex-shrink:0;}
+.clock{font-size:21px;font-weight:700;}
+.tb-date{font-size:12px;color:var(--mut);}
+.tb-right{display:flex;align-items:center;gap:16px;font-size:13px;color:var(--mut);overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:66%;}
+.stat{display:flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0;}
+.dot{width:10px;height:10px;border-radius:50%;background:#455;transition:.3s;}
+.dot.on{background:var(--ok);box-shadow:0 0 10px var(--ok);}
+.content{flex:1;position:relative;overflow:hidden;}
+.page{position:absolute;inset:0;padding:20px;padding-bottom:50px;overflow:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;overscroll-behavior:contain;display:none;animation:fade .3s;}
+.page.active{display:block;}
+.page.nomargin{padding:0;}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+h2.title{font-size:22px;margin-bottom:16px;display:flex;align-items:center;gap:10px;}
+.badge{font-size:11px;background:var(--accent2);color:#03121b;padding:3px 9px;border-radius:20px;font-weight:700;}
+.grid{display:grid;gap:16px;}
+.g3{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));}
+.card{background:var(--panel);border:1px solid var(--bd);border-radius:18px;padding:18px;}
+.card h3{font-size:14px;margin-bottom:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;}
+.wbig{display:flex;align-items:center;gap:16px;}
+.wbig .ic{font-size:50px;}
+.wbig .t{font-size:40px;font-weight:800;}
+.quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:14px;}
+.qbtn{background:var(--panel);border:1px solid var(--bd);border-radius:16px;padding:18px 10px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:.15s;}
+.qbtn:active{background:#1b2438;}
+.qbtn .ic{font-size:30px;}
+.qbtn b{font-size:13px;}
+/* Radyo */
+.radio-now{text-align:center;padding:10px 0;}
+.radio-freq{font-size:40px;font-weight:800;color:var(--accent);}
+.radio-freq small{font-size:16px;color:var(--mut);margin-left:4px;}
+.radio-name{font-size:30px;font-weight:800;margin-top:6px;}
+.eq{display:flex;justify-content:center;gap:3px;height:44px;align-items:flex-end;margin:14px 0;}
+.eq span{width:4px;background:linear-gradient(180deg,var(--accent2),var(--accent));border-radius:3px;height:10px;animation:eqa .9s ease-in-out infinite;}
+@keyframes eqa{0%,100%{height:8px}50%{height:42px}}
+.controls{display:flex;justify-content:center;align-items:center;gap:22px;margin-top:8px;}
+.cbtn{width:54px;height:54px;border-radius:50%;background:var(--panel2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--txt);border:1px solid var(--bd);}
+.cbtn svg{width:24px;height:24px;fill:currentColor;}
+.cbtn.big{width:66px;height:66px;background:linear-gradient(135deg,var(--accent2),var(--accent));color:#03121b;}
+.cbtn.big svg{width:30px;height:30px;}
+.cbtn:active{transform:scale(.94);}
+.hint{text-align:center;font-size:12px;color:var(--mut);margin-top:10px;}
+.hint kbd{background:var(--panel2);border:1px solid var(--bd);border-radius:6px;padding:2px 7px;font-size:12px;color:var(--txt);margin:0 2px;}
+.sliderrow{display:flex;align-items:center;gap:12px;margin-top:14px;}
+.sliderrow label{font-size:13px;color:var(--mut);min-width:34px;}
+.sliderrow input{flex:1;accent-color:var(--accent);}
+.presets{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px;}
+.preset{background:var(--panel2);border:1px solid var(--bd);border-radius:12px;padding:14px 10px;text-align:center;cursor:pointer;transition:.15s;}
+.preset.on{background:linear-gradient(135deg,var(--accent2),var(--accent));color:#03121b;}
+.preset b{display:block;font-size:20px;font-weight:800;}
+.preset span{font-size:13px;color:var(--mut);}
+.preset.on span{color:#0a2530;}
+.toggle{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--bd);border-radius:12px;padding:12px 14px;cursor:pointer;}
+/* Navigasyon + GPS */
+.mapwrap{position:relative;height:100%;}
+#map{position:absolute;inset:0;background:#0c1420;}
+.gps-panel{position:absolute;top:14px;left:14px;background:rgba(11,17,28,.92);backdrop-filter:blur(6px);border:1px solid var(--bd);border-radius:14px;padding:12px 14px;z-index:500;min-width:210px;}
+.gps-panel .row{display:flex;justify-content:space-between;gap:16px;font-size:13px;margin:3px 0;}
+.gps-panel .row span{color:var(--mut);}
+.gps-panel .row b{font-weight:700;}
+.gps-speed{position:absolute;top:14px;right:14px;background:#fff;color:#111;border-radius:50%;width:70px;height:70px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:5px solid var(--accent);z-index:500;}
+.gps-speed b{font-size:24px;line-height:1;}
+.gps-speed span{font-size:9px;}
+.gps-bar{position:absolute;bottom:14px;left:14px;right:14px;background:rgba(11,17,28,.92);backdrop-filter:blur(6px);border:1px solid var(--bd);border-radius:14px;padding:10px 14px;z-index:500;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.gps-bar .btn{padding:9px 14px;border-radius:10px;border:1px solid var(--bd);background:var(--panel2);color:var(--txt);font-size:13px;font-weight:700;cursor:pointer;}
+.gps-bar .btn.pri{background:linear-gradient(135deg,var(--accent2),var(--accent));color:#03121b;border:none;}
+.gps-bar .btn.dng{color:var(--warn);}
+.gps-bar .cnt{margin-left:auto;font-size:12px;color:var(--mut);}
+/* Kayit tablosu */
+.logtbl{margin-top:16px;}
+.logtbl table{width:100%;border-collapse:collapse;font-size:13px;}
+.logtbl th,.logtbl td{padding:8px 6px;text-align:left;border-bottom:1px solid var(--bd);white-space:nowrap;}
+.logtbl th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px;}
+.logtbl .empty{color:var(--mut);text-align:center;padding:20px 0;}
+/* Kamera */
+.cam-feed{position:relative;border-radius:18px;overflow:hidden;height:calc(100vh - 250px);min-height:280px;background:#05070c;border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;}
+.cam-feed .ph{color:var(--mut);text-align:center;}
+.cam-feed .ph .ic{font-size:60px;}
+.cam-label{position:absolute;top:14px;left:14px;background:rgba(0,0,0,.6);padding:7px 12px;border-radius:8px;font-size:13px;display:flex;align-items:center;gap:8px;}
+.rec{width:10px;height:10px;border-radius:50%;background:var(--warn);animation:blink 1s infinite;}
+@keyframes blink{50%{opacity:.2}}
+.cam-switch{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+.cam-tab{background:var(--panel);border:1px solid var(--bd);border-radius:12px;padding:12px 16px;cursor:pointer;font-size:14px;}
+.cam-tab.on{background:linear-gradient(135deg,var(--accent2),var(--accent));color:#03121b;font-weight:700;}
+/* Uyarilar */
+.alert{display:flex;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--bd);border-left:4px solid var(--warn);border-radius:12px;padding:14px;margin-bottom:10px;}
+.alert.ok{border-left-color:var(--ok);}
+.alert.warn2{border-left-color:#f5b83d;}
+.alert .ico{width:44px;height:44px;border-radius:10px;background:rgba(255,59,59,.15);display:flex;align-items:center;justify-content:center;font-size:22px;}
+.alert .body b{font-size:15px;}
+.alert .body span{font-size:12px;color:var(--mut);display:block;margin-top:2px;}
+.alert .time{margin-left:auto;font-size:11px;color:var(--mut);}
+.popup{position:fixed;top:66px;left:50%;transform:translateX(-50%) translateY(-140px);background:linear-gradient(135deg,#ff3b3b,#c81d1d);padding:16px 26px;border-radius:16px;display:flex;align-items:center;gap:16px;box-shadow:0 12px 40px rgba(255,0,0,.4);z-index:1000;transition:.4s;opacity:0;}
+.popup.show{transform:translateX(-50%) translateY(0);opacity:1;}
+.popup .pic{font-size:32px;}
+.popup b{font-size:17px;}
+.popup span{font-size:12px;opacity:.9;display:block;}
+/* Marquee */
+.marquee{height:34px;background:#05070c;border-top:1px solid var(--bd);overflow:hidden;position:relative;display:flex;align-items:center;flex-shrink:0;}
+.marquee .track2{display:inline-block;white-space:nowrap;padding-left:100%;animation:scroll 34s linear infinite;color:var(--accent);font-size:13px;font-weight:600;}
+.marquee .track2 b{color:#fff;}
+.marquee .sep{color:var(--mut);margin:0 14px;}
+@keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-100%)}}
 </style>
 </head>
 <body>
-  <div class="topbar">
-    <div class="logo">NAVİMEX PRO V01<small>GPS TAKİP · HALİL KILIÇ</small></div>
-    <div class="status">
-      <div class="stat"><span class="dot" id="dot-gps"></span>GPS</div>
-      <div class="stat"><span class="dot" id="dot-net"></span><span id="nettxt">İNTERNET</span></div>
-      <div class="stat" id="clock">--:--:--</div>
-    </div>
+<div id="app">
+  <div class="sidebar">
+    <div class="logo">NAVİMEX<span style="color:#fff"> PRO</span><small>V01 · HALİL KILIÇ</small></div>
+    <div class="navbtn active" data-page="home"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg>Ana</div>
+    <div class="navbtn" data-page="radio"><svg viewBox="0 0 24 24"><path d="M4 8h16v12H4z"/><circle cx="9" cy="14" r="3"/><path d="M16 3l-8 5"/></svg>Radyo</div>
+    <div class="navbtn" data-page="nav"><svg viewBox="0 0 24 24"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg>Navi</div>
+    <div class="navbtn" data-page="cam"><svg viewBox="0 0 24 24"><path d="M2 7h13v10H2z"/><path d="M15 10l7-3v10l-7-3"/></svg>Kamera</div>
+    <div class="navbtn" data-page="alerts"><svg viewBox="0 0 24 24"><path d="M12 2l10 18H2z"/><path d="M12 9v5M12 17h.01"/></svg>Uyarı</div>
+    <div class="navbtn" data-page="car"><svg viewBox="0 0 24 24"><path d="M5 13l2-6h10l2 6M5 13h14v5H5zM7 18v2M17 18v2"/></svg>Araç</div>
   </div>
-  <div class="wrap">
-    <div id="map"></div>
-    <div class="side">
-      <div class="cards">
-        <div class="card"><div class="lbl">Enlem</div><div class="val" id="v-lat">--</div></div>
-        <div class="card"><div class="lbl">Boylam</div><div class="val" id="v-lon">--</div></div>
-        <div class="card"><div class="lbl">Hız</div><div class="val" id="v-spd">0 <small>km/s</small></div></div>
-        <div class="card"><div class="lbl">Doğruluk</div><div class="val" id="v-acc">-- <small>m</small></div></div>
-        <div class="card wide"><div class="lbl">Konum</div><div class="val" id="v-loc" style="font-size:16px">Konum bekleniyor...</div></div>
+  <div class="main">
+    <div class="topbar">
+      <div class="tb-left">
+        <div class="clock" id="clock">--:--</div>
+        <div class="tb-date" id="date"></div>
       </div>
-      <div class="btns">
-        <button class="btn pri" id="btn-toggle" onclick="toggleLog()">▶ Kaydı Başlat</button>
-        <button class="btn" onclick="exportCSV()">⬇ CSV</button>
-        <button class="btn dng" onclick="clearLog()">🗑 Temizle</button>
-      </div>
-      <div class="tblhead"><span>Kayıt Tablosu</span><span id="count">0 kayıt</span></div>
-      <div class="tblwrap">
-        <table>
-          <thead><tr><th>#</th><th>Saat</th><th>Enlem</th><th>Boylam</th><th>Hız</th><th>±m</th></tr></thead>
-          <tbody id="tbody"><tr><td colspan="6" class="empty">Henüz kayıt yok. “Kaydı Başlat” ile gerçek GPS verisini toplamaya başlayın.</td></tr></tbody>
-        </table>
+      <div class="tb-right">
+        <div class="stat"><span class="dot" id="dot-conn"></span><span id="conntxt">İNTERNET</span></div>
+        <div class="stat"><span class="dot" id="dot-gps"></span>GPS</div>
+        <div class="stat"><span class="dot" id="dot-bt"></span>Bluetooth</div>
+        <div class="stat" id="outtemp">🌡️ --°C</div>
       </div>
     </div>
-  </div>
-<script>
-// ================= NAVİMEX PRO V01 – GPS Takip (Yapımcı: HALİL KILIÇ) =================
-const REFRESH_MS=3000;              // her 3 saniyede bir yenile
-let map,marker,accCircle,trail;
-let trailPts=[];
-let logging=false;
-let log=[];                          // kayıt tablosu verisi
-let lastFix=null;                    // en son gerçek GPS ölçümü
-let mapReady=false;
+    <div class="content">
+      <!-- ANA EKRAN -->
+      <div class="page active" id="home">
+        <h2 class="title">Ana Ekran <span class="badge">NAVİMEX</span></h2>
+        <div class="grid g3">
+          <div class="card">
+            <h3>Hava Durumu</h3>
+            <div class="wbig"><div class="ic" id="w-ic">⛅</div><div><div class="t" id="w-temp">--°</div><div style="color:var(--mut);font-size:13px" id="w-desc">Konum bekleniyor...</div></div></div>
+          </div>
+          <div class="card">
+            <h3>Şu An Çalıyor</h3>
+            <div style="font-size:24px;font-weight:800" id="home-rname">—</div>
+            <div style="color:var(--mut);font-size:13px;margin-top:4px" id="home-rfreq">İstasyon seçin</div>
+            <div class="eq" style="justify-content:flex-start;margin:12px 0 0"><span style="animation-delay:0s"></span><span style="animation-delay:.2s"></span><span style="animation-delay:.4s"></span><span style="animation-delay:.1s"></span><span style="animation-delay:.3s"></span></div>
+          </div>
+          <div class="card">
+            <h3>Konum</h3>
+            <div style="font-size:20px;font-weight:800;color:var(--accent2)" id="home-loc">Konum alınıyor...</div>
+            <div style="color:var(--mut);font-size:13px;margin-top:4px" id="home-coord">GPS izni bekleniyor</div>
+          </div>
+        </div>
+        <h3 style="color:var(--mut);margin:22px 0 12px;font-size:13px;text-transform:uppercase;letter-spacing:.5px">Hızlı Erişim</h3>
+        <div class="quick">
+          <div class="qbtn" data-go="nav"><span class="ic">🗺️</span><b>Navigasyon</b></div>
+          <div class="qbtn" data-go="radio"><span class="ic">📻</span><b>Radyo</b></div>
+          <div class="qbtn" data-go="cam"><span class="ic">📹</span><b>Kameralar</b></div>
+          <div class="qbtn" data-go="alerts"><span class="ic">⚠️</span><b>Uyarılar</b></div>
+          <div class="qbtn" data-go="car"><span class="ic">🚗</span><b>Araç</b></div>
+          <div class="qbtn" onclick="showAlert('🎙️','Sesli Asistan','Sizi dinliyorum...','ok')"><span class="ic">🎙️</span><b>Asistan</b></div>
+        </div>
+      </div>
 
-// ---- Harita kurulumu (Leaflet + OpenStreetMap) ----
+      <!-- RADYO -->
+      <div class="page" id="radio">
+        <h2 class="title">FM Radyo <span class="badge" id="stcount"></span></h2>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="card">
+            <div class="radio-now">
+              <div class="radio-freq" id="rfreq">--<small>MHz</small></div>
+              <div class="radio-name" id="rname">İstasyon seçin</div>
+            </div>
+            <div class="eq" id="bigeq"></div>
+            <div class="controls">
+              <div class="cbtn" onclick="tuneStep(-1)" title="Önceki"><svg viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6zM20 18V6l-8.5 6z"/></svg></div>
+              <div class="cbtn big" id="rplay" onclick="togglePlay()"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+              <div class="cbtn" onclick="tuneStep(1)" title="Sonraki"><svg viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6zM13 6v12l8.5-6z"/></svg></div>
+            </div>
+            <div class="hint">Araç yön tuşlarıyla kanal değiştir: <kbd>◀</kbd> önceki · <kbd>▶</kbd> sonraki · <kbd>▲▼</kbd> ses · <kbd>Enter</kbd> oynat/durdur</div>
+            <div class="sliderrow"><label>Ses</label><input type="range" min="0" max="100" value="80" id="vol" oninput="setVol(this.value)"></div>
+            <div id="audiostatus" style="text-align:center;font-size:13px;color:var(--mut);margin-top:12px;min-height:18px">▶ İstasyon seçin veya oynat tuşuna basın</div>
+            <div class="toggle" onclick="testTone()" style="margin-top:12px;justify-content:center"><span>🔊</span>Hoparlör Test Sesi</div>
+          </div>
+          <div class="card">
+            <h3>Kayıtlı İstasyonlar</h3>
+            <div class="presets" id="presets"></div>
+          </div>
+        </div>
+      </div>
+      <!-- NAVIGASYON + GPS + KAYIT TABLOSU -->
+      <div class="page nomargin" id="nav">
+        <div class="mapwrap">
+          <div id="map"></div>
+          <div class="gps-panel">
+            <div class="row"><span>Konum</span><b id="nav-loc">—</b></div>
+            <div class="row"><span>Enlem</span><b id="nav-lat">--</b></div>
+            <div class="row"><span>Boylam</span><b id="nav-lon">--</b></div>
+            <div class="row"><span>Doğruluk</span><b id="nav-acc">-- m</b></div>
+            <div class="row"><span>Yenileme</span><b style="color:var(--accent2)">3 sn</b></div>
+          </div>
+          <div class="gps-speed"><b id="nav-speed">0</b><span>km/s</span></div>
+          <div class="gps-bar">
+            <button class="btn pri" id="logbtn" onclick="toggleLog()">▶ Kaydı Başlat</button>
+            <button class="btn" onclick="exportCSV()">⬇ CSV</button>
+            <button class="btn dng" onclick="clearLog()">🗑 Temizle</button>
+            <button class="btn" onclick="recenter()">📍 Merkezle</button>
+            <span class="cnt" id="logcnt">0 kayıt</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- KAYIT TABLOSU (ayrı sayfa görünümü değil; navi ile aynı veriden) -->
+
+      <!-- KAMERA -->
+      <div class="page" id="cam">
+        <h2 class="title">Yol Kameraları <span class="badge">360°</span></h2>
+        <div class="cam-feed">
+          <div class="ph"><div class="ic" id="cam-ic">🔙</div><div id="cam-txt">Kamera sinyali bekleniyor</div><div style="font-size:12px;margin-top:6px">Gerçek kamera için araç kamera girişi bağlanmalıdır</div></div>
+          <div class="cam-label"><span class="rec"></span><span id="camname">GERİ KAMERA</span></div>
+        </div>
+        <div class="cam-switch">
+          <div class="cam-tab on" onclick="switchCam(this,'GERİ KAMERA','🔙')">🔙 Geri</div>
+          <div class="cam-tab" onclick="switchCam(this,'ÖN KAMERA','⬆️')">⬆️ Ön</div>
+          <div class="cam-tab" onclick="switchCam(this,'SOL YAN','⬅️')">⬅️ Sol</div>
+          <div class="cam-tab" onclick="switchCam(this,'SAĞ YAN','➡️')">➡️ Sağ</div>
+          <div class="cam-tab" onclick="switchCam(this,'KUŞ BAKIŞI 360','🛰️')">🛰️ 360°</div>
+        </div>
+      </div>
+
+      <!-- UYARILAR -->
+      <div class="page" id="alerts">
+        <h2 class="title">Uyarılar & Güvenlik</h2>
+        <div class="card" style="max-width:460px;margin-bottom:16px"><b style="color:var(--ok)">🟢 Gerçek Zamanlı İzleme Aktif</b><div style="font-size:12px;color:var(--mut);margin-top:6px">Tüm uyarılar cihazınızın gerçek GPS ve bağlantı verilerine dayanır. Sahte/demo uyarı gösterilmez. Hız limiti (120 km/s) aşıldığında otomatik uyarır.</div></div>
+        <div id="alertlist"></div>
+      </div>
+
+      <!-- ARAC / KAYIT TABLOSU -->
+      <div class="page" id="car">
+        <h2 class="title">GPS Kayıt Tablosu <span class="badge">CSV</span></h2>
+        <div class="card logtbl">
+          <table>
+            <thead><tr><th>#</th><th>Saat</th><th>Enlem</th><th>Boylam</th><th>Hız</th><th>±m</th></tr></thead>
+            <tbody id="logbody"><tr><td colspan="6" class="empty">Henüz kayıt yok. Navigasyon ekranından “Kaydı Başlat” ile gerçek GPS verisini toplayın.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="marquee"><div class="track2" id="marquee">NAVİMEX PRO V01 · Yapımcı: HALİL KILIÇ</div></div>
+  </div>
+</div>
+<div class="popup" id="popup"><div class="pic" id="pp-ic">⚠️</div><div><b id="pp-t">Uyarı</b><span id="pp-s"></span></div></div>
+<script>
+// ===== NAVİMEX PRO V01 — Yapımcı: HALİL KILIÇ =====
+
+// ---- Sayfa geçişleri ----
+document.querySelectorAll('.navbtn').forEach(b=>b.addEventListener('click',()=>go(b.dataset.page)));
+document.querySelectorAll('.qbtn[data-go]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.go)));
+function go(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.navbtn').forEach(n=>n.classList.remove('active'));
+  const pg=document.getElementById(id);if(pg)pg.classList.add('active');
+  const nb=document.querySelector('.navbtn[data-page="'+id+'"]');if(nb)nb.classList.add('active');
+  if(id==='nav')setTimeout(()=>{if(map)map.invalidateSize();},250);
+}
+
+// ---- Saat ----
+function tick(){
+  const d=new Date();
+  document.getElementById('clock').textContent=d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('date').textContent=d.toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long'});
+}
+tick();setInterval(tick,1000);
+
+// ---- EQ çubukları (radyo) ----
+(function(){
+  let h='';for(let i=0;i<28;i++){h+='<span style="animation-delay:'+((i%9)*0.06).toFixed(2)+'s"></span>';}
+  document.getElementById('bigeq').innerHTML=h;
+})();
+
+// ---- Gerçek Türk radyo istasyonları (yedek akış adresleriyle) ----
+const stations=[
+  {f:"100.0",n:"Power FM",src:["https://listen.powerapp.com.tr/powerfm/mpeg/icecast.audio","https://20073.live.streamtheworld.com/POWER_FM.mp3"]},
+  {f:"91.0",n:"Power Türk",src:["https://listen.powerapp.com.tr/powerturk/mpeg/icecast.audio"]},
+  {f:"92.0",n:"Kral FM",src:["https://dygedge.radyotvonline.net/kralfm/playlist.m3u8","https://46.20.3.204/kralfm/mp3"]},
+  {f:"92.3",n:"Kral Pop",src:["https://dygedge.radyotvonline.net/kralpop/playlist.m3u8"]},
+  {f:"94.9",n:"Metro FM",src:["https://17683.live.streamtheworld.com/METRO_FM.mp3"]},
+  {f:"97.4",n:"Number1 FM",src:["https://n10101m.mediatriple.net/videoonlylive/mtorcdvcpmchmqx_live/playlist.m3u8"]},
+  {f:"96.2",n:"Slow Türk",src:["https://moondigitaledge2.radyotvonline.net/slowturk/playlist.m3u8"]},
+  {f:"90.0",n:"Radyo Fenomen",src:["https://live.radyofenomen.com/fenomen/128/icecast.audio"]},
+  {f:"87.7",n:"Virgin Radio",src:["https://46.20.3.201/;stream.mp3"]},
+  {f:"102.0",n:"Radyo Vizyon",src:["https://moondigitaledge1.radyotvonline.net/radyovizyon/playlist.m3u8"]},
+  {f:"88.0",n:"Best FM",src:["https://str2.radyotvonline.net/8000/stream"]},
+  {f:"95.0",n:"Radyo D",src:["https://dygedge.radyotvonline.net/radyod/playlist.m3u8"]},
+  {f:"93.4",n:"Joy Türk",src:["https://playerservices.streamtheworld.com/api/livestream-redirect/JOY_TURK.mp3"]},
+  {f:"98.4",n:"Joy FM",src:["https://playerservices.streamtheworld.com/api/livestream-redirect/JOY_FM.mp3"]},
+  {f:"104.0",n:"Alem FM",src:["https://moondigitaledge2.radyotvonline.net/alemfm/playlist.m3u8"]},
+  {f:"103.0",n:"TRT FM",src:["https://radio-trtfm.live.trt.com.tr/master.m3u8"]},
+  {f:"99.7",n:"TRT 3",src:["https://radio-trt3.live.trt.com.tr/master.m3u8"]},
+  {f:"88.4",n:"Kral World",src:["https://dygedge.radyotvonline.net/kralworld/playlist.m3u8"]},
+  {f:"96.9",n:"Park FM",src:["https://s03.diazol.hu:7142/stream.mp3"]},
+  {f:"105.0",n:"Super FM",src:["https://20953.live.streamtheworld.com/SUPER_FM.mp3"]},
+  {f:"90.4",n:"Radyo 7",src:["https://radyo7.radyo7.com/radyo7"]},
+  {f:"101.5",n:"Radyo Seymen",src:["https://yayin.radyoseymen.com.tr:8054/stream"]},
+  {f:"106.2",n:"Radyo Voyage",src:["https://moondigitaledge1.radyotvonline.net/radyovoyage/playlist.m3u8"]},
+  {f:"89.6",n:"Fenomen Slow",src:["https://live.radyofenomen.com/fenomenslow/128/icecast.audio"]}
+];
+let cur=-1,playing=false,audio,hls;
+
+function buildAudio(){
+  audio=new Audio();audio.preload='none';audio.volume=0.8;
+  document.body.appendChild(audio);
+  audio.addEventListener('playing',()=>{setStatus('▶ Çalıyor: '+(stations[cur]?stations[cur].n:''),'var(--ok)');});
+  audio.addEventListener('error',()=>tryNext());
+  audio.addEventListener('stalled',()=>setStatus('… Bağlanıyor','var(--mut)'));
+}
+buildAudio();
+function setStatus(t,c){const el=document.getElementById('audiostatus');if(el){el.textContent=t;el.style.color=c||'var(--mut)';}}
+
+let srcIdx=0;
+function playStation(i){
+  cur=i;srcIdx=0;renderPresets();updateRadio();
+  loadSrc();
+}
+function loadSrc(){
+  const s=stations[cur];if(!s)return;
+  const url=s.src[srcIdx];
+  if(!url){setStatus('⚠ Bu istasyona ulaşılamıyor','var(--warn)');return;}
+  setStatus('… Bağlanıyor: '+s.n,'var(--mut)');
+  if(hls){try{hls.destroy();}catch(e){}hls=null;}
+  audio.pause();audio.removeAttribute('src');
+  const isHls=/\.m3u8(\?|$)/i.test(url);
+  if(isHls){
+    if(audio.canPlayType('application/vnd.apple.mpegurl')){
+      audio.src=url;audio.play().then(()=>{playing=true;setPlayIcon();}).catch(()=>tryNext());
+    }else if(window.Hls&&Hls.isSupported()){
+      hls=new Hls();hls.loadSource(url);hls.attachMedia(audio);
+      hls.on(Hls.Events.MANIFEST_PARSED,()=>{audio.play().then(()=>{playing=true;setPlayIcon();}).catch(()=>tryNext());});
+      hls.on(Hls.Events.ERROR,(e,d)=>{if(d&&d.fatal)tryNext();});
+    }else{tryNext();}
+  }else{
+    audio.src=url;audio.play().then(()=>{playing=true;setPlayIcon();}).catch(()=>tryNext());
+  }
+}
+function tryNext(){
+  const s=stations[cur];if(!s)return;
+  srcIdx++;
+  if(srcIdx<s.src.length){loadSrc();}
+  else{setStatus('⚠ '+s.n+' şu an yayında değil (internet/akış gerekli)','var(--warn)');playing=false;setPlayIcon();}
+}
+function togglePlay(){
+  if(cur<0){playStation(0);return;}
+  if(playing){audio.pause();playing=false;setStatus('‖ Duraklatıldı','var(--mut)');}
+  else{audio.play().then(()=>{playing=true;setStatus('▶ Çalıyor: '+stations[cur].n,'var(--ok)');}).catch(()=>loadSrc());}
+  setPlayIcon();
+}
+function setPlayIcon(){
+  const b=document.getElementById('rplay');
+  b.innerHTML=playing?'<svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>':'<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+}
+function tuneStep(d){
+  const n=stations.length;
+  const ni=cur<0?(d>0?0:n-1):((cur+d+n)%n);
+  playStation(ni);
+}
+function pick(i){playStation(i);}
+function setVol(v){audio.volume=Math.max(0,Math.min(1,v/100));}
+
+function updateRadio(){
+  const s=stations[cur];
+  document.getElementById('rfreq').innerHTML=(s?s.f:'--')+'<small>MHz</small>';
+  document.getElementById('rname').textContent=s?s.n:'İstasyon seçin';
+  document.getElementById('home-rname').textContent=s?s.n:'—';
+  document.getElementById('home-rfreq').textContent=s?(s.f+' MHz · FM Radyo'):'İstasyon seçin';
+}
+function renderPresets(){
+  document.getElementById('presets').innerHTML=stations.map((s,i)=>
+    '<div class="preset '+(i===cur?'on':'')+'" onclick="pick('+i+')"><b>'+s.n+'</b><span>'+s.f+' MHz</span></div>').join('');
+  document.getElementById('stcount').textContent=stations.length+' istasyon';
+}
+renderPresets();updateRadio();
+
+// ---- Araç yön tuşları ile kontrol (klavye / direksiyon tuşları) ----
+document.addEventListener('keydown',function(e){
+  switch(e.key){
+    case 'ArrowRight':case 'MediaTrackNext':tuneStep(1);e.preventDefault();break;
+    case 'ArrowLeft':case 'MediaTrackPrevious':tuneStep(-1);e.preventDefault();break;
+    case 'ArrowUp':{const v=document.getElementById('vol');v.value=Math.min(100,+v.value+5);setVol(v.value);e.preventDefault();break;}
+    case 'ArrowDown':{const v=document.getElementById('vol');v.value=Math.max(0,+v.value-5);setVol(v.value);e.preventDefault();break;}
+    case 'Enter':case ' ':case 'MediaPlayPause':togglePlay();e.preventDefault();break;
+  }
+});
+
+// ---- Test sesi ----
+let actx;
+function testTone(){
+  try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    const o=actx.createOscillator(),g=actx.createGain();
+    o.type='sine';o.frequency.value=440;g.gain.value=0.2;o.connect(g);g.connect(actx.destination);o.start();
+    setStatus('🔊 Test sesi çalıyor... hoparlör çalışıyor','var(--ok)');
+    setTimeout(()=>o.stop(),1500);
+  }catch(e){setStatus('⚠ Ses çıkışı açılamadı','var(--warn)');}
+}
+// ---- Uyarı popup + gerçek olay günlüğü ----
+let pt;
+function showAlert(ic,t,s,cls){
+  document.getElementById('pp-ic').textContent=ic;
+  document.getElementById('pp-t').textContent=t;
+  document.getElementById('pp-s').textContent=s;
+  const p=document.getElementById('popup');p.classList.add('show');
+  clearTimeout(pt);pt=setTimeout(()=>p.classList.remove('show'),3200);
+  logAlert(ic,t,s,cls);
+}
+const alertLog=[];
+function logAlert(ic,t,s,cls){
+  alertLog.unshift({c:cls||'',i:ic,t:t,s:s,tm:new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})});
+  if(alertLog.length>20)alertLog.pop();renderAlerts();
+}
+function renderAlerts(){
+  const el=document.getElementById('alertlist');if(!el)return;
+  if(!alertLog.length){el.innerHTML='<div class="alert ok"><div class="ico">✅</div><div class="body"><b>Aktif uyarı yok</b><span>Sistem sizi gerçek zamanlı izliyor</span></div><div class="time">Şimdi</div></div>';return;}
+  el.innerHTML=alertLog.map(a=>'<div class="alert '+a.c+'"><div class="ico">'+a.i+'</div><div class="body"><b>'+a.t+'</b><span>'+a.s+'</span></div><div class="time">'+a.tm+'</div></div>').join('');
+}
+renderAlerts();
+
+// ---- Kamera ----
+function switchCam(el,name,ic){
+  document.querySelectorAll('.cam-tab').forEach(t=>t.classList.remove('on'));el.classList.add('on');
+  document.getElementById('camname').textContent=name;document.getElementById('cam-ic').textContent=ic;
+  document.getElementById('cam-txt').textContent=name+' — sinyal bekleniyor';
+}
+
+// ---- İnternet & Bluetooth ----
+function updateNet(){
+  const on=navigator.onLine;
+  const d=document.getElementById('dot-conn');d.classList.toggle('on',on);
+  const c=document.getElementById('conntxt');c.textContent=on?'BAĞLANDI':'BAĞLANTI YOK';c.style.color=on?'var(--ok)':'var(--warn)';
+}
+updateNet();
+window.addEventListener('online',()=>{updateNet();logAlert('🟢','İnternet Bağlandı','Ağ bağlantısı kuruldu','ok');});
+window.addEventListener('offline',()=>{updateNet();logAlert('🔴','İnternet Kesildi','Ağ bağlantısı kayboldu','');});
+(function(){
+  const db=document.getElementById('dot-bt');
+  if(navigator.bluetooth&&navigator.bluetooth.getAvailability){
+    navigator.bluetooth.getAvailability().then(av=>db.classList.toggle('on',av)).catch(()=>{});
+  }
+})();
+// ================= GERÇEK GPS + HARİTA + 3 SN YENİLEME + KAYIT =================
+let map,marker,accCircle,trail,mapReady=false,trailPts=[];
+let geoLat=null,geoLon=null,lastFix=null,lastWx=0,lastGeoName=0,lastMapLat=0,lastMapLon=0;
+let lastSpeedWarn=0;const SPEED_LIMIT=120;
+let logging=false;const gpsLog=[];
+
 function initMap(lat,lon){
-  map=L.map('map',{zoomControl:true,attributionControl:true}).setView([lat,lon],16);
+  map=L.map('map',{zoomControl:true}).setView([lat,lon],16);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
   marker=L.circleMarker([lat,lon],{radius:9,color:'#03121b',weight:3,fillColor:'#00e0a8',fillOpacity:1}).addTo(map);
   accCircle=L.circle([lat,lon],{radius:20,color:'#00b4ff',weight:1,fillColor:'#00b4ff',fillOpacity:.12}).addTo(map);
   trail=L.polyline([],{color:'#00b4ff',weight:4,opacity:.8}).addTo(map);
   mapReady=true;
 }
-
-// ---- Gerçek GPS ölçümü geldiğinde ----
 function onGeo(p){
-  const c=p.coords;
-  const lat=c.latitude,lon=c.longitude;
+  const c=p.coords;geoLat=c.latitude;geoLon=c.longitude;
   const kmh=Math.max(0,Math.round((c.speed||0)*3.6));
   const acc=Math.round(c.accuracy||0);
-  lastFix={lat:lat,lon:lon,kmh:kmh,acc:acc,t:new Date()};
-
+  lastFix={lat:geoLat,lon:geoLon,kmh:kmh,acc:acc,t:new Date()};
   document.getElementById('dot-gps').classList.add('on');
-  document.getElementById('v-lat').textContent=lat.toFixed(6);
-  document.getElementById('v-lon').textContent=lon.toFixed(6);
-  document.getElementById('v-spd').innerHTML=kmh+' <small>km/s</small>';
-  document.getElementById('v-acc').innerHTML=acc+' <small>m</small>';
-
-  if(!mapReady){initMap(lat,lon);}
+  const ns=document.getElementById('nav-speed');if(ns)ns.textContent=kmh;
+  document.getElementById('nav-lat').textContent=geoLat.toFixed(6);
+  document.getElementById('nav-lon').textContent=geoLon.toFixed(6);
+  document.getElementById('nav-acc').textContent=acc+' m';
+  document.getElementById('home-coord').textContent=geoLat.toFixed(5)+', '+geoLon.toFixed(5)+' · ±'+acc+'m';
+  if(!mapReady){initMap(geoLat,geoLon);}
   else{
-    marker.setLatLng([lat,lon]);
-    accCircle.setLatLng([lat,lon]).setRadius(Math.max(acc,5));
-    map.panTo([lat,lon],{animate:true,duration:.6});
+    marker.setLatLng([geoLat,geoLon]);
+    accCircle.setLatLng([geoLat,geoLon]).setRadius(Math.max(acc,5));
+    const moved=Math.abs(geoLat-lastMapLat)>0.0002||Math.abs(geoLon-lastMapLon)>0.0002;
+    if(moved){lastMapLat=geoLat;lastMapLon=geoLon;map.panTo([geoLat,geoLon],{animate:true,duration:.6});}
   }
-  // iz çizgisi
-  trailPts.push([lat,lon]);
-  if(trailPts.length>500)trailPts.shift();
-  if(trail)trail.setLatLngs(trailPts);
+  trailPts.push([geoLat,geoLon]);if(trailPts.length>800)trailPts.shift();if(trail)trail.setLatLngs(trailPts);
+  if(kmh>SPEED_LIMIT&&Date.now()-lastSpeedWarn>20000){lastSpeedWarn=Date.now();showAlert('🚨','Hız Uyarısı',kmh+' km/s · Limit '+SPEED_LIMIT+' km/s aşıldı','');}
+  if(Date.now()-lastWx>30000){lastWx=Date.now();fetchWeather();}
+  if(Date.now()-lastGeoName>20000){lastGeoName=Date.now();fetchPlace();}
 }
-
 function onGeoErr(e){
   document.getElementById('dot-gps').classList.remove('on');
-  const el=document.getElementById('v-loc');
-  el.textContent=e.code===1?'Konum izni reddedildi':(e.code===3?'Konum zaman aşımı':'Konum alınamıyor');
+  const msg=e.code===1?'Konum izni reddedildi':(e.code===3?'Konum zaman aşımı':'Konum alınamıyor');
+  const el=document.getElementById('nav-loc');if(el)el.textContent=msg;
+  document.getElementById('home-loc').textContent=msg;
 }
-
-// ---- Gerçek zamanlı: her 3 saniyede bir taze konum iste ----
-function requestFix(){
-  if(!navigator.geolocation)return;
-  navigator.geolocation.getCurrentPosition(onGeo,onGeoErr,{enableHighAccuracy:true,maximumAge:0,timeout:10000});
-}
+function requestFix(){if(navigator.geolocation)navigator.geolocation.getCurrentPosition(onGeo,onGeoErr,{enableHighAccuracy:true,maximumAge:0,timeout:10000});}
 if(navigator.geolocation){
-  // anında + sürekli izleme (hareket) + 3 sn zorunlu tazeleme
   navigator.geolocation.watchPosition(onGeo,onGeoErr,{enableHighAccuracy:true,maximumAge:0,timeout:20000});
   requestFix();
-  setInterval(requestFix,REFRESH_MS);
-}else{
-  onGeoErr({code:2});
+  setInterval(requestFix,3000); // gerçek zamanlı: her 3 saniyede bir
+}else{onGeoErr({code:2});}
+function recenter(){if(map&&geoLat!=null)map.setView([geoLat,geoLon],16);}
+// ---- GPS Kayıt tablosu (her 3 sn'de son gerçek konumu işle) ----
+setInterval(function(){if(logging&&lastFix)addLogRow(lastFix);},3000);
+function addLogRow(f){
+  gpsLog.push({t:f.t.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),lat:f.lat,lon:f.lon,kmh:f.kmh,acc:f.acc});
+  renderLog();
 }
-
-// ---- Kayıt tablosu: her 3 sn'de son gerçek konumu tabloya işle ----
-setInterval(function(){
-  if(!logging||!lastFix)return;
-  addRow(lastFix);
-},REFRESH_MS);
-
-function addRow(f){
-  const t=f.t.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  log.push({t:t,lat:f.lat,lon:f.lon,kmh:f.kmh,acc:f.acc});
-  renderTable();
+function renderLog(){
+  const tb=document.getElementById('logbody');
+  document.getElementById('logcnt').textContent=gpsLog.length+' kayıt';
+  if(!gpsLog.length){tb.innerHTML='<tr><td colspan="6" class="empty">Henüz kayıt yok.</td></tr>';return;}
+  const start=Math.max(0,gpsLog.length-200);
+  tb.innerHTML=gpsLog.slice(start).map((r,i)=>'<tr><td>'+(start+i+1)+'</td><td>'+r.t+'</td><td>'+r.lat.toFixed(6)+'</td><td>'+r.lon.toFixed(6)+'</td><td>'+r.kmh+'</td><td>'+r.acc+'</td></tr>').reverse().join('');
 }
-function renderTable(){
-  const tb=document.getElementById('tbody');
-  document.getElementById('count').textContent=log.length+' kayıt';
-  if(!log.length){tb.innerHTML='<tr><td colspan="6" class="empty">Henüz kayıt yok.</td></tr>';return;}
-  const rows=log.slice(-200).map((r,i)=>{
-    const idx=log.length-Math.min(log.length,200)+i+1;
-    return '<tr><td>'+idx+'</td><td>'+r.t+'</td><td>'+r.lat.toFixed(6)+'</td><td>'+r.lon.toFixed(6)+'</td><td>'+r.kmh+'</td><td>'+r.acc+'</td></tr>';
-  }).reverse().join('');
-  tb.innerHTML=rows;
-  const w=document.querySelector('.tblwrap');w.scrollTop=0;
-}
-
 function toggleLog(){
   logging=!logging;
-  const b=document.getElementById('btn-toggle');
+  const b=document.getElementById('logbtn');
   b.textContent=logging?'⏸ Kaydı Durdur':'▶ Kaydı Başlat';
-  b.style.background=logging?'linear-gradient(135deg,#ff6a6a,#c81d1d)':'';
-  b.style.color=logging?'#fff':'';
-  if(logging&&lastFix)addRow(lastFix);
+  b.style.background=logging?'linear-gradient(135deg,#ff6a6a,#c81d1d)':'';b.style.color=logging?'#fff':'';
+  if(logging&&lastFix)addLogRow(lastFix);
+  if(logging)showAlert('🔴','Kayıt Başladı','GPS verileri her 3 saniyede kaydediliyor','ok');
 }
-function clearLog(){
-  if(log.length&&!confirm('Tüm kayıtlar silinsin mi?'))return;
-  log=[];renderTable();
-}
+function clearLog(){if(gpsLog.length&&!confirm('Tüm kayıtlar silinsin mi?'))return;gpsLog.length=0;renderLog();}
 function exportCSV(){
-  if(!log.length){alert('Kaydedilecek veri yok. Önce kaydı başlatın.');return;}
+  if(!gpsLog.length){alert('Kaydedilecek veri yok. Önce kaydı başlatın.');return;}
   let csv='no,saat,enlem,boylam,hiz_kmh,dogruluk_m\n';
-  log.forEach((r,i)=>{csv+=(i+1)+','+r.t+','+r.lat.toFixed(6)+','+r.lon.toFixed(6)+','+r.kmh+','+r.acc+'\n';});
+  gpsLog.forEach((r,i)=>{csv+=(i+1)+','+r.t+','+r.lat.toFixed(6)+','+r.lon.toFixed(6)+','+r.kmh+','+r.acc+'\n';});
   const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='navimex_gps_'+new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')+'.csv';
   document.body.appendChild(a);a.click();a.remove();
 }
 
-// ---- Konum adı (reverse geocode) – 30 sn'de bir ----
-let lastGeo=0;
-setInterval(function(){
-  if(!lastFix||Date.now()-lastGeo<30000)return;
-  lastGeo=Date.now();
-  fetch('https://api.bigdatacloud.net/data/reverse-geocode-client?latitude='+lastFix.lat+'&longitude='+lastFix.lon+'&localityLanguage=tr')
+// ---- Konum adı (reverse geocode) ----
+function fetchPlace(){
+  if(geoLat==null)return;
+  fetch('https://api.bigdatacloud.net/data/reverse-geocode-client?latitude='+geoLat+'&longitude='+geoLon+'&localityLanguage=tr')
     .then(r=>r.json()).then(d=>{
-      const parts=[d.locality||d.city,d.principalSubdivision,d.countryName].filter(Boolean);
-      const el=document.getElementById('v-loc');if(parts.length)el.textContent=parts.join(', ');
+      const city=d.locality||d.city||d.principalSubdivision||'';
+      window.__city=city;
+      const parts=[city,d.principalSubdivision].filter(Boolean);
+      if(parts.length){document.getElementById('nav-loc').textContent=parts.join(', ');document.getElementById('home-loc').textContent=parts.join(', ');}
     }).catch(()=>{});
-},3000);
-
-// ---- İnternet & saat ----
-function updateNet(){
-  const on=navigator.onLine;
-  const d=document.getElementById('dot-net');d.classList.toggle('on',on);
-  document.getElementById('nettxt').textContent=on?'BAĞLANDI':'BAĞLANTI YOK';
 }
-updateNet();
-window.addEventListener('online',updateNet);
-window.addEventListener('offline',updateNet);
-setInterval(function(){
-  document.getElementById('clock').textContent=new Date().toLocaleTimeString('tr-TR');
-},1000);
+// ---- Gerçek hava (Open-Meteo) ----
+const wxIcons={0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌦️',55:'🌦️',61:'🌧️',63:'🌧️',65:'🌧️',71:'🌨️',73:'🌨️',75:'❄️',80:'🌦️',81:'🌧️',82:'⛈️',95:'⛈️',96:'⛈️',99:'⛈️'};
+const wxDesc={0:'Açık',1:'Az bulutlu',2:'Parçalı bulutlu',3:'Kapalı',45:'Sisli',48:'Sisli',51:'Çiseleme',53:'Çiseleme',55:'Çiseleme',61:'Hafif yağmur',63:'Yağmurlu',65:'Kuvvetli yağmur',71:'Hafif kar',73:'Kar',75:'Yoğun kar',80:'Sağanak',81:'Sağanak',82:'Kuvvetli sağanak',95:'Gök gürültülü',96:'Dolu',99:'Dolu'};
+function fetchWeather(){
+  if(geoLat==null)return;
+  fetch('https://api.open-meteo.com/v1/forecast?latitude='+geoLat+'&longitude='+geoLon+'&current=temperature_2m,weather_code&timezone=auto')
+    .then(r=>r.json()).then(d=>{
+      if(!d.current)return;const t=Math.round(d.current.temperature_2m);const code=d.current.weather_code;
+      document.getElementById('outtemp').textContent='🌡️ '+t+'°C';
+      document.getElementById('w-temp').textContent=t+'°';
+      document.getElementById('w-ic').textContent=wxIcons[code]||'⛅';
+      document.getElementById('w-desc').textContent=(wxDesc[code]||'')+(window.__city?' · '+window.__city:'');
+    }).catch(()=>{});
+}
+// ---- Kayar yazı (marquee) ----
+function updateMarquee(){
+  const m=document.getElementById('marquee');if(!m)return;
+  const parts=['<b>NAVİMEX PRO V01</b>'];
+  if(window.__city)parts.push('📍 '+window.__city);
+  const wt=document.getElementById('w-temp').textContent;if(wt&&wt!=='--°')parts.push('🌡️ '+wt);
+  const spd=document.getElementById('nav-speed').textContent;if(+spd>0)parts.push('🚗 '+spd+' km/s');
+  if(cur>=0)parts.push('📻 '+stations[cur].n);
+  parts.push(navigator.onLine?'🟢 İnternet: BAĞLANDI':'🔴 İnternet: YOK');
+  parts.push('🕒 '+new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}));
+  parts.push('Yapımcı: <b>HALİL KILIÇ</b>');
+  m.innerHTML=parts.join('<span class="sep">⬥</span>');
+}
+updateMarquee();setInterval(updateMarquee,5000);
 </script>
 </body>
 </html>
