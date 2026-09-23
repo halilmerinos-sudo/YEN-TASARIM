@@ -211,6 +211,7 @@ h2.title{font-size:22px;margin-bottom:16px;display:flex;align-items:center;gap:1
       <div class="page nomargin" id="nav">
         <div class="mapwrap">
           <div id="map"></div>
+          <div id="gps-banner" style="display:none;position:absolute;top:14px;left:14px;right:14px;z-index:600;background:linear-gradient(135deg,#ff6a3d,#c81d1d);color:#fff;border-radius:12px;padding:12px 16px;font-size:13px;line-height:1.5;box-shadow:0 8px 30px rgba(0,0,0,.4)"></div>
           <div class="gps-panel">
             <div class="row"><span>Konum</span><b id="nav-loc">—</b></div>
             <div class="row"><span>Enlem</span><b id="nav-lat">--</b></div>
@@ -220,10 +221,11 @@ h2.title{font-size:22px;margin-bottom:16px;display:flex;align-items:center;gap:1
           </div>
           <div class="gps-speed"><b id="nav-speed">0</b><span>km/s</span></div>
           <div class="gps-bar">
-            <button class="btn pri" id="logbtn" onclick="toggleLog()">▶ Kaydı Başlat</button>
+            <button class="btn pri" id="gpsbtn" onclick="enableGPS()">📍 Konuma İzin Ver</button>
+            <button class="btn" id="logbtn" onclick="toggleLog()">▶ Kaydı Başlat</button>
             <button class="btn" onclick="exportCSV()">⬇ CSV</button>
             <button class="btn dng" onclick="clearLog()">🗑 Temizle</button>
-            <button class="btn" onclick="recenter()">📍 Merkezle</button>
+            <button class="btn" onclick="recenter()">🎯 Merkezle</button>
             <span class="cnt" id="logcnt">0 kayıt</span>
           </div>
         </div>
@@ -501,17 +503,42 @@ function onGeo(p){
   if(Date.now()-lastWx>30000){lastWx=Date.now();fetchWeather();}
   if(Date.now()-lastGeoName>20000){lastGeoName=Date.now();fetchPlace();}
 }
+function showBanner(html){var b=document.getElementById('gps-banner');if(!b)return;if(html){b.innerHTML=html;b.style.display='block';}else{b.style.display='none';}}
 function onGeoErr(e){
   document.getElementById('dot-gps').classList.remove('on');
-  const msg=e.code===1?'Konum izni reddedildi':(e.code===3?'Konum zaman aşımı':'Konum alınamıyor');
-  const el=document.getElementById('nav-loc');if(el)el.textContent=msg;
+  var msg,tip;
+  if(e.code===1){msg='Konum izni reddedildi';tip='iPhone: <b>Ayarlar › Gizlilik ve Güvenlik › Konum Servisleri</b> açık olmalı ve <b>Safari</b> için “Uygulamayı Kullanırken” seçili olmalı. Sonra sayfayı yenileyip <b>“Konuma İzin Ver”</b> tuşuna basın.';}
+  else if(e.code===3){msg='Konum zaman aşımı';tip='Açık alanda tekrar deneyin; ilk sinyal birkaç saniye sürebilir. “Konuma İzin Ver” tuşuna tekrar basın.';}
+  else{msg='Konum alınamıyor';tip='';}
+  var el=document.getElementById('nav-loc');if(el)el.textContent=msg;
   document.getElementById('home-loc').textContent=msg;
+  // Güvenli bağlam (HTTPS) kontrolü – iOS Safari konumu yalnızca HTTPS'te verir
+  if(!window.isSecureContext){
+    showBanner('⚠️ <b>Konum için güvenli bağlantı (HTTPS) gerekir.</b><br>Bu sayfa telefona indirilip <b>dosyadan (file://)</b> açılırsa iPhone Safari konum vermez. Lütfen sayfayı <b>https:// bağlantısı üzerinden</b> açın.');
+  }else if(tip){
+    showBanner('📍 <b>'+msg+'.</b><br>'+tip);
+  }
 }
-function requestFix(){if(navigator.geolocation)navigator.geolocation.getCurrentPosition(onGeo,onGeoErr,{enableHighAccuracy:true,maximumAge:0,timeout:10000});}
+function requestFix(){if(navigator.geolocation)navigator.geolocation.getCurrentPosition(function(p){showBanner('');onGeo(p);},onGeoErr,{enableHighAccuracy:true,maximumAge:0,timeout:12000});}
+function enableGPS(){
+  if(!navigator.geolocation){onGeoErr({code:2});return;}
+  var b=document.getElementById('gpsbtn');b.textContent='… Konum isteniyor';
+  navigator.geolocation.getCurrentPosition(function(p){
+    showBanner('');b.textContent='✅ Konum aktif';
+    onGeo(p);
+    // sürekli izleme + 3 sn tazeleme (bir kez başlat)
+    if(!window.__geoStarted){window.__geoStarted=true;
+      navigator.geolocation.watchPosition(onGeo,onGeoErr,{enableHighAccuracy:true,maximumAge:0,timeout:20000});
+      setInterval(requestFix,3000);
+    }
+  },function(e){b.textContent='📍 Konuma İzin Ver';onGeoErr(e);},{enableHighAccuracy:true,maximumAge:0,timeout:15000});
+}
 if(navigator.geolocation){
-  navigator.geolocation.watchPosition(onGeo,onGeoErr,{enableHighAccuracy:true,maximumAge:0,timeout:20000});
-  requestFix();
-  setInterval(requestFix,3000); // gerçek zamanlı: her 3 saniyede bir
+  // Otomatik dene (HTTPS + izin varsa hemen çalışır); iOS'ta gerekirse “Konuma İzin Ver” tuşu kullanılır
+  navigator.geolocation.getCurrentPosition(function(p){window.__geoStarted=true;showBanner('');onGeo(p);
+    navigator.geolocation.watchPosition(onGeo,onGeoErr,{enableHighAccuracy:true,maximumAge:0,timeout:20000});
+    setInterval(requestFix,3000);
+  },onGeoErr,{enableHighAccuracy:true,maximumAge:0,timeout:12000});
 }else{onGeoErr({code:2});}
 function recenter(){if(map&&geoLat!=null)map.setView([geoLat,geoLon],16);}
 // ---- GPS Kayıt tablosu (her 3 sn'de son gerçek konumu işle) ----
